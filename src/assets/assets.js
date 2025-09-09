@@ -17,27 +17,27 @@ export const IMG = [
 export const SideMenuItems = [
     {
         name: "Care Homes",
-        icon: CareHomesIcon,
+        icon: "fi fi-rr-home-heart",
         path: "/"
     },
     {
         name: "Care Receivers",
-        icon: CareReceiversIcon,
+        icon: "fi fi-rr-hand-holding-medical",
         path: "/care-receivers"
     },
     {
         name: "Care Givers",
-        icon: CareGiversIcon,
+        icon: "fi fi-rr-user-nurse",
         path: "/care-givers"
     },
     {
         name: "Roster",
-        icon: CareRosterIcon,
+        icon: "fi fi-rr-calendar-clock",
         path: "/roster"
     },
     {
         name: "Care Beds",
-        icon: CareBedsIcon,
+        icon: "fi fi-rr-hospital-bed",
         path: "/care-beds"
     },
     

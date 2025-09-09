@@ -17,7 +17,7 @@ function App() {
         <Header/>
         <SideMenu/>
         
-        <div className='w-[88%] h-[90vh] bg-indigo-300 absolute top-[10vh] right-0'>
+        <div className='w-[85%] h-[90vh] bg-gray-100 absolute top-[10vh] right-0'>
           <Routes>
             <Route path='/' element={<CareHomes />} />
             <Route path='/care-receivers' element={<CareReceivers />} />

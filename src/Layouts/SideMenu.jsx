@@ -1,20 +1,22 @@
 import React from 'react'
 import { SideMenuItems } from '../assets/assets'
-import { Link } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
+
 
 function SideMenu() {
+
   return (
-    <div className='bg-gray-50 w-[12%] h-[90vh]'>
-        <div className='flex flex-col'>
+    <div className='bg-blue-600 w-[15%] h-[90vh] px-5 py-5'>
+        <nav className='flex flex-col gap-5'>
             {SideMenuItems.map((item, index) => {
                 return(
-                    <Link to={item.path} key={index} className='flex bg-white gap-2.5 py-3 px-2 transition duration-100 ease-in cursor-pointer hover:bg-blue-200'>
-                        <img src={item.icon} className='w-5' />
+                    <NavLink to={item.path} key={index} className={({ isActive }) => `${isActive ? "bg-blue-700 hover:bg-blue-700" : ""} flex gap-4 py-3 px-5 items-center rounded-lg text-white transition duration-100 ease-in cursor-pointer hover:bg-blue-500`}>
+                        <i class={`${item.icon} text-white scale-120 my-auto flex`} ></i>
                         <p>{item.name}</p>
-                    </Link>
+                    </NavLink>
                 )
             })}
-        </div>
+        </nav>
     </div>
   )
 }
