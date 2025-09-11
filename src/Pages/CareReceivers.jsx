@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import AddNewBts from '../Components/AddNewBts'
 import { Styles } from '../Styles/Styles'
 import CareReceiverTable from '../Components/CareReceiverTable'
+import CareHomeFilter from '../Components/CareHomeFilter';
 
 function CareReceivers() {
 
@@ -14,8 +15,8 @@ function CareReceivers() {
         <AddNewBts btn_name={"Care Receiver"} />
       </div>
 
-      <div className='overflow-y-scroll'>
-        <CareReceiverTable rows_per_page={10}/>
+      <div className='overflow-y-scroll relative'>
+        <CareReceiverTable care_home={careHome} rows_per_page={10}/>
       </div>
     </div>
   )

@@ -1,19 +1,24 @@
-import React, { useMemo, useState } from 'react';
-import { careBedTableHeader, careGiverData, careReceiverData, careReceiverTableHeader } from '../assets/assets';
+import React, { useMemo, useState, useEffect } from 'react';
+import { availableCareGivers, careReceiverData, careReceiverTableHeader } from '../assets/assets';
 import { Styles } from '../Styles/Styles';
+import { useNavigate } from 'react-router-dom';
 
 function CareReceiverTable({ care_home, rows_per_page }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(rows_per_page);
+  const [data, setData] = useState(careReceiverData);
+  const [editingRow, setEditingRow] = useState(null);
 
-  // Filter data based on care_home prop
+  const navigate = useNavigate();
+
+  // Filter data by care_home prop
   const filteredByHome = useMemo(() => {
     if (care_home && care_home !== 'All') {
-      return careReceiverData.filter(item => item.CareHome === care_home);
+      return data.filter(item => item.CareHome === care_home);
     }
-    return careReceiverData;
-  }, [care_home]);
+    return data;
+  }, [data, care_home]);
 
   // Filter data by search term
   const filteredData = useMemo(() => {
@@ -32,14 +37,57 @@ function CareReceiverTable({ care_home, rows_per_page }) {
   const startIndex = (currentPage - 1) * perPage;
   const paginatedData = filteredData.slice(startIndex, startIndex + perPage);
 
-  // Reset current page when filters or perPage change
-  React.useEffect(() => {
+  // Reset page on search, care_home, or perPage change
+  useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, care_home, perPage]);
 
+  // Handlers
+  const handleDelete = (id) => {
+    setData(prev => prev.filter(row => row.id !== id));
+    if ((totalRows - 1) / perPage < currentPage && currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleEdit = (id) => {
+    setEditingRow(id);
+  };
+
+  const handleDone = () => {
+    setEditingRow(null);
+  };
+
+  const handleCareGiver2Change = (id, newValue) => {
+    setData(prev =>
+      prev.map(row => (row.id === id ? { ...row, CareGiver2: newValue } : row))
+    );
+  };
+
+  const handleOpen = (id) => {
+    navigate(`/care-receiver/${id}`);
+  };
+
+  // Editable CareGiver2 cell
+  const CareGiver2Cell = ({ row }) =>
+    editingRow === row.id ? (
+      <select
+        value={row.CareGiver2}
+        onChange={e => handleCareGiver2Change(row.id, e.target.value)}
+        className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        {availableCareGivers.map(cg => (
+          <option key={cg} value={cg}>
+            {cg}
+          </option>
+        ))}
+      </select>
+    ) : (
+      <span>{row.CareGiver2}</span>
+    );
+
   return (
     <div>
-      {/* Search input and clear button */}
+      {/* Search input and clear */}
       <div className="p-4 bg-blue-50 border-b flex gap-3 items-center">
         <input
           type="text"
@@ -65,6 +113,7 @@ function CareReceiverTable({ care_home, rows_per_page }) {
                 {header}
               </th>
             ))}
+            
           </tr>
         </thead>
         <tbody>
@@ -80,15 +129,52 @@ function CareReceiverTable({ care_home, rows_per_page }) {
                 <td className={Styles.TableData}>{item.CareHome}</td>
                 <td className={Styles.TableData}>{item.Age}</td>
                 <td className={Styles.TableData}>{item.CareGiver1}</td>
-                <td className={Styles.TableData}>{item.CareGiver2}</td>
+                <td className={Styles.TableData}>
+                  <CareGiver2Cell row={item} />
+                </td>
                 <td className={Styles.TableData}>{item.EmergencyContacts}</td>
                 <td className={Styles.TableData}>{item.Flags}</td>
                 <td className={Styles.TableData}>{item.Condition}</td>
+                <td className={Styles.TableData}>
+                  <div className="flex gap-3">
+                    <button
+                      className="bg-blue-500 py-1 px-1.5 text-white text-sm rounded-sm"
+                      type="button"
+                      onClick={() => handleOpen(item.id)}
+                    >
+                      Open
+                    </button>
+                    {editingRow === item.id ? (
+                      <button
+                        className="bg-green-600 py-1 px-1.5 text-white text-sm rounded-sm"
+                        type="button"
+                        onClick={handleDone}
+                      >
+                        Done
+                      </button>
+                    ) : (
+                      <button
+                        className="bg-gray-500 py-1 px-1.5 text-white text-sm rounded-sm"
+                        type="button"
+                        onClick={() => handleEdit(item.id)}
+                      >
+                        Edit
+                      </button>
+                    )}
+                    <button
+                      className="bg-red-500 py-1 px-1.5 text-white text-sm rounded-sm"
+                      type="button"
+                      onClick={() => handleDelete(item.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan={careBedTableHeader.length} className="text-center py-4">
+              <td colSpan={careReceiverTableHeader.length + 1} className="text-center py-4">
                 No data found.
               </td>
             </tr>
@@ -109,6 +195,7 @@ function CareReceiverTable({ care_home, rows_per_page }) {
             value={perPage}
             onChange={e => {
               setPerPage(Number(e.target.value));
+              setCurrentPage(1);
             }}
             className="px-2 py-1 border border-gray-300 rounded text-sm"
           >

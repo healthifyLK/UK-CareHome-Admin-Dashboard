@@ -15,7 +15,7 @@ const CareGivers = () => {
         <AddNewBts btn_name="Care Givers" />
       </div>
 
-      <div>
+      <div className='overflow-y-scroll relative'>
         
         <CareGiverTable care_home={careHome} rows_per_page={10}/>
       </div>

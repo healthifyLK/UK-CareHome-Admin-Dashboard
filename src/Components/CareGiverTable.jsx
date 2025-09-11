@@ -1,19 +1,23 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { careBedTableHeader, careGiverData, careGiverTableHeader } from '../assets/assets';
 import { Styles } from '../Styles/Styles';
+import { useNavigate } from 'react-router-dom';
 
 function CareGiverTable({ care_home, rows_per_page }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(rows_per_page);
+  const [data, setData] = useState(careGiverData);
+
+  const navigate = useNavigate();
 
   // Filter data based on care_home prop
   const filteredByHome = useMemo(() => {
     if (care_home && care_home !== 'All') {
-      return careGiverData.filter(item => item.CareHome === care_home);
+      return data.filter(item => item.CareHome === care_home);
     }
-    return careGiverData;
-  }, [care_home]);
+    return data;
+  }, [data, care_home]);
 
   // Filter data by search term
   const filteredData = useMemo(() => {
@@ -33,9 +37,22 @@ function CareGiverTable({ care_home, rows_per_page }) {
   const paginatedData = filteredData.slice(startIndex, startIndex + perPage);
 
   // Reset current page when filters or perPage change
-  React.useEffect(() => {
+  useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, care_home, perPage]);
+
+  const handleOpen = (id) => {
+    // Navigate to details page for caregiver with this id
+    navigate(`/caregiver/${id}`);
+  };
+
+  const handleDelete = (id) => {
+    setData(prevData => prevData.filter(item => item.id !== id));
+    // Adjust current page if deleting last item on page
+    if ((totalRows - 1) / perPage < currentPage && currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
 
   return (
     <div>
@@ -80,11 +97,27 @@ function CareGiverTable({ care_home, rows_per_page }) {
                 <td className={Styles.TableData}>{item.CareHome}</td>
                 <td className={Styles.TableData}>{item.P_count}</td>
                 <td className={Styles.TableData}>{item.R_Leave}</td>
+                <td className={Styles.TableData}>
+                  <button
+                    type="button"
+                    onClick={() => handleOpen(item.id)}
+                    className="bg-blue-500 py-1 px-2 text-white rounded-sm mr-2"
+                  >
+                    Open
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(item.id)}
+                    className="bg-red-600 py-1 px-2 text-white rounded-sm"
+                  >
+                    Delete
+                  </button>
+                </td>
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan={careBedTableHeader.length} className="text-center py-4">
+              <td colSpan={careGiverTableHeader.length + 1} className="text-center py-4">
                 No data found.
               </td>
             </tr>
@@ -121,7 +154,6 @@ function CareGiverTable({ care_home, rows_per_page }) {
             >
               Previous
             </button>
-
             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
               let page;
               if (totalPages <= 5) {
@@ -133,7 +165,6 @@ function CareGiverTable({ care_home, rows_per_page }) {
               } else {
                 page = currentPage - 2 + i;
               }
-
               return (
                 <button
                   key={page}
@@ -148,7 +179,6 @@ function CareGiverTable({ care_home, rows_per_page }) {
                 </button>
               );
             })}
-
             <button
               onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
               disabled={currentPage === totalPages}

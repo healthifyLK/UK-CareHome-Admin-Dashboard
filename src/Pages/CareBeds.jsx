@@ -11,7 +11,7 @@ export default function CareBeds() {
             <AddNewBts btn_name="Care Bed"/>
         </div>
         
-        <div>
+        <div className='overflow-y-scroll relative'>
           <BedsTable rows_per_page={10}/>
         </div>
     </div>

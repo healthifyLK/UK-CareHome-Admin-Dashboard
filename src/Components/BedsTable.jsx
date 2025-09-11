@@ -1,19 +1,21 @@
-import React, { useMemo, useState } from 'react';
-import { careBedsData, careBedTableHeader, careGiverData } from '../assets/assets';
+import React, { useMemo, useState, useEffect } from 'react';
+import { careBedsData, careBedTableHeader } from '../assets/assets';
 import { Styles } from '../Styles/Styles';
 
 function BedsTable({ care_home, rows_per_page }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(rows_per_page);
+  const [data, setData] = useState(careBedsData);
+  const [editingRow, setEditingRow] = useState(null);
 
   // Filter data based on care_home prop
   const filteredByHome = useMemo(() => {
     if (care_home && care_home !== 'All') {
-      return careBedsData.filter(item => item.CareHome === care_home);
+      return data.filter(item => item.CareHome === care_home);
     }
-    return careBedsData;
-  }, [care_home]);
+    return data;
+  }, [data, care_home]);
 
   // Filter data by search term
   const filteredData = useMemo(() => {
@@ -33,13 +35,49 @@ function BedsTable({ care_home, rows_per_page }) {
   const paginatedData = filteredData.slice(startIndex, startIndex + perPage);
 
   // Reset current page when filters or perPage change
-  React.useEffect(() => {
+  useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, care_home, perPage]);
 
+  // Handlers
+  const handleEdit = (id) => {
+    setEditingRow(id);
+  };
+
+  const handleDone = () => {
+    setEditingRow(null);
+  };
+
+  const handleDelete = (id) => {
+    setData(prev => prev.filter(row => row.id !== id));
+    // Adjust pagination if necessary
+    if ((totalRows - 1) / perPage < currentPage && currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleConditionChange = (id, newCondition) => {
+    setData(prev => prev.map(row => (row.id === id ? { ...row, Condition: newCondition } : row)));
+  };
+
+  // Editable Condition cell
+  const ConditionCell = ({ row }) =>
+    editingRow === row.id ? (
+      <select
+        value={row.Condition}
+        onChange={e => handleConditionChange(row.id, e.target.value)}
+        className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+      >
+        <option value="Good">Good</option>
+        <option value="Bad">Bad</option>
+      </select>
+    ) : (
+      <span>{row.Condition}</span>
+    );
+
   return (
     <div>
-      {/* Search input and clear button */}
+      {/* Search input and clear */}
       <div className="p-4 bg-blue-50 border-b flex gap-3 items-center">
         <input
           type="text"
@@ -77,13 +115,43 @@ function BedsTable({ care_home, rows_per_page }) {
                 <td className={Styles.TableData}>{item.id}</td>
                 <td className={Styles.TableData}>{item.bed}</td>
                 <td className={Styles.TableData}>{item.CareHome}</td>
+                <td className={Styles.TableData}>{item.Brand}</td>
+                <td className={Styles.TableData}>{item.Model}</td>
                 <td className={Styles.TableData}>{item.Status}</td>
-                <td className={Styles.TableData}>{item.Condition}</td>
+                <td className={Styles.TableData}>
+                  <ConditionCell row={item} />
+                </td>
+                <td className={Styles.TableData}>
+                  {editingRow === item.id ? (
+                    <button
+                      type="button"
+                      className="bg-green-600 text-white px-3 py-1 rounded-sm"
+                      onClick={handleDone}
+                    >
+                      Done
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="bg-gray-600 text-white px-3 py-1 rounded-sm"
+                      onClick={() => handleEdit(item.id)}
+                    >
+                      Edit
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="bg-red-600 text-white px-3 py-1 ml-2 rounded-sm"
+                    onClick={() => handleDelete(item.id)}
+                  >
+                    Delete
+                  </button>
+                </td>
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan={careBedTableHeader.length} className="text-center py-4">
+              <td colSpan={careBedTableHeader.length + 1} className="text-center py-4">
                 No data found.
               </td>
             </tr>
@@ -163,4 +231,3 @@ function BedsTable({ care_home, rows_per_page }) {
 }
 
 export default BedsTable;
-

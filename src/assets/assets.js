@@ -88,22 +88,24 @@ export const CareHomes = [
 
 export const CareHomeNames = ["Care Home 1", "Care Home 2", "Care Home 3", "Care Home 4"]
 
-export const careBedTableHeader = ["ID", "Bed Name", "Care Home", "Status", "Condition"]
-export const careGiverTableHeader = ["ID", "First Name", "Last Name", "Current Care Home", "Number of Patients", "Remaining Leaves"]
-export const careReceiverTableHeader = ["ID", "First Name", "Last Name", "Current Care Home", "Age", "Care Giver 1", "Care Giver 2", "# of E. Contacts", "Flags", "Condition"]
+export const careBedTableHeader = ["ID", "Bed Name", "Care Home","Brand", "Model", "Status", "Condition", "Action"]
+export const careGiverTableHeader = ["ID", "First Name", "Last Name", "Current Care Home", "Number of Patients", "Remaining Leaves", "Action"]
+export const careReceiverTableHeader = ["ID", "First Name", "Last Name", "Current Care Home", "Age", "Care Giver 1", "Care Giver 2", "# of E. Contacts", "Flags", "Condition", "Action"]
+
+export const availableCareGivers = ["Alice","Clara","Eva","Grace","Isabella","Jack","Karen",]
 
 
 export const careBedsData = [
-    { id: 1, bed: "CH101", CareHome: "Care Home 1", Status: "Occupied", Condition: "Good" },
-    { id: 2, bed: "CH102", CareHome: "Care Home 1", Status: "Occupied", Condition: "Good" },
-    { id: 3, bed: "CH103", CareHome: "Care Home 2", Status: "Occupied", Condition: "Good" },
-    { id: 4, bed: "CH104", CareHome: "Care Home 3", Status: "Occupied", Condition: "Good" },
-    { id: 5, bed: "CH105", CareHome: "Care Home 2", Status: "Occupied", Condition: "Good" },
-    { id: 6, bed: "CH106", CareHome: "Care Home 1", Status: "Occupied", Condition: "Good" },
-    { id: 7, bed: "CH107", CareHome: "Care Home 3", Status: "Occupied", Condition: "Good" },
-    { id: 8, bed: "CH108", CareHome: "Care Home 1", Status: "Occupied", Condition: "Good" },
-    { id: 9, bed: "CH109", CareHome: "Care Home 3", Status: "Occupied", Condition: "Good" },
-    { id: 10, bed: "CH110", CareHome: "Care Home 2", Status: "Occupied", Condition: "Good" },
+    { id: 1, bed: "CH101", CareHome: "Care Home 1", Brand: "XYZ", Model: "123", Status: "Occupied", Condition: "Good" },
+    { id: 2, bed: "CH102", CareHome: "Care Home 1", Brand: "XYZ", Model: "123", Status: "Occupied", Condition: "Good" },
+    { id: 3, bed: "CH103", CareHome: "Care Home 2", Brand: "XYZ", Model: "123", Status: "Occupied", Condition: "Good" },
+    { id: 4, bed: "CH104", CareHome: "Care Home 3", Brand: "XYZ", Model: "123", Status: "Occupied", Condition: "Good" },
+    { id: 5, bed: "CH105", CareHome: "Care Home 2", Brand: "XYZ", Model: "123", Status: "Occupied", Condition: "Good" },
+    { id: 6, bed: "CH106", CareHome: "Care Home 1", Brand: "XYZ", Model: "123", Status: "Occupied", Condition: "Good" },
+    { id: 7, bed: "CH107", CareHome: "Care Home 3", Brand: "XYZ", Model: "123", Status: "Occupied", Condition: "Good" },
+    { id: 8, bed: "CH108", CareHome: "Care Home 1", Brand: "XYZ", Model: "123", Status: "Occupied", Condition: "Good" },
+    { id: 9, bed: "CH109", CareHome: "Care Home 3", Brand: "XYZ", Model: "123", Status: "Occupied", Condition: "Good" },
+    { id: 10, bed: "CH110", CareHome: "Care Home 2", Brand: "XYZ", Model: "123", Status: "Occupied", Condition: "Good" },
 ]
 
 export const careGiverData = [
@@ -141,3 +143,70 @@ export const careReceiverData = [
   { id: 14, FirstName: "Jessica", LastName: "Taylor", CareHome: "Care Home 2", Age: 67, CareGiver1: "Alice", CareGiver2: "Brian", EmergencyContacts: 3, Flags: "None", Condition: "Recovering" },
   { id: 15, FirstName: "Daniel", LastName: "Moore", CareHome: "Care Home 2", Age: 79, CareGiver1: "Clara", CareGiver2: "Daniel", EmergencyContacts: 2, Flags: "None", Condition: "Stable" }
 ];
+
+export const CareGiverShifts = [
+    {
+      id: "e060d904-5db5-428f-b638-89509d741b79",
+      locationId: "d7a5138b-33ee-4ebe-b678-4f6f889f5686",
+      caregiverId: "054d6dda-8119-4855-ae17-ca8b9e4a969d",
+      roomBedId: "b1b9cd24-0d19-4f76-a3aa-f6645b7df677",
+      shiftDate: "2025-09-13T00:00:00.000Z",
+      shiftType: "FULL_DAY",
+      startTime: "08:00:00",
+      endTime: "20:00:00",
+      status: "PUBLISHED",
+      shiftStatus: "SCHEDULED",
+      notes: "Regular care shift for Nroshan",
+      duration: 12,
+      caregiver: { name: "Sarah Johnson", id: "054d6dda-8119-4855-ae17-ca8b9e4a969d" },
+      location: { name: "Main Ward A", id: "d7a5138b-33ee-4ebe-b678-4f6f889f5686" }
+    },
+    {
+      id: "e060d904-5db5-428f-b638-89509d741b80",
+      locationId: "d7a5138b-33ee-4ebe-b678-4f6f889f5686",
+      caregiverId: "054d6dda-8119-4855-ae17-ca8b9e4a969d",
+      roomBedId: "b1b9cd24-0d19-4f76-a3aa-f6645b7df677",
+      shiftDate: "2025-09-14T00:00:00.000Z",
+      shiftType: "MORNING",
+      startTime: "06:00:00",
+      endTime: "14:00:00",
+      status: "PUBLISHED",
+      shiftStatus: "SCHEDULED",
+      notes: "Morning shift",
+      duration: 8,
+      caregiver: { name: "Sarah Johnson", id: "054d6dda-8119-4855-ae17-ca8b9e4a969d" },
+      location: { name: "Main Ward A", id: "d7a5138b-33ee-4ebe-b678-4f6f889f5686" }
+    },
+    {
+      id: "e060d904-5db5-428f-b638-89509d741b81",
+      locationId: "d7a5138b-33ee-4ebe-b678-4f6f889f5687",
+      caregiverId: "054d6dda-8119-4855-ae17-ca8b9e4a969e",
+      roomBedId: "b1b9cd24-0d19-4f76-a3aa-f6645b7df678",
+      shiftDate: "2025-09-13T00:00:00.000Z",
+      shiftType: "NIGHT",
+      startTime: "22:00:00",
+      endTime: "06:00:00",
+      status: "PUBLISHED",
+      shiftStatus: "SCHEDULED",
+      notes: "Night shift coverage",
+      duration: 8,
+      caregiver: { name: "Michael Chen", id: "054d6dda-8119-4855-ae17-ca8b9e4a969e" },
+      location: { name: "ICU Ward", id: "d7a5138b-33ee-4ebe-b678-4f6f889f5687" }
+    },
+    {
+      id: "e060d904-5db5-428f-b638-89509d741b82",
+      locationId: "d7a5138b-33ee-4ebe-b678-4f6f889f5688",
+      caregiverId: "054d6dda-8119-4855-ae17-ca8b9e4a969f",
+      roomBedId: "b1b9cd24-0d19-4f76-a3aa-f6645b7df679",
+      shiftDate: "2025-09-15T00:00:00.000Z",
+      shiftType: "EVENING",
+      startTime: "14:00:00",
+      endTime: "22:00:00",
+      status: "PUBLISHED",
+      shiftStatus: "SCHEDULED",
+      notes: "Evening care duties",
+      duration: 8,
+      caregiver: { name: "Emma Wilson", id: "054d6dda-8119-4855-ae17-ca8b9e4a969f" },
+      location: { name: "Pediatric Ward", id: "d7a5138b-33ee-4ebe-b678-4f6f889f5688" }
+    }
+  ]
