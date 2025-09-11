@@ -18,7 +18,7 @@ export const SideMenuItems = [
     {
         name: "Care Homes",
         icon: "fi fi-rr-home-heart",
-        path: "/"
+        path: "/care-homes"
     },
     {
         name: "Care Receivers",
@@ -46,24 +46,27 @@ export const SideMenuItems = [
 
 export const CareHomes = [
     {
-        name: "Care Home 01",
+        id: 1,
+        name: "Care Home 02",
         status: "Active",
         location: "London",
         Total_Beds: 40,
         Occupied_Beds: 32,
     },
-     {
-        name: "Care Home 01",
+    {
+        id: 2,
+        name: "Care Home 03",
         status: "Active",
         location: "London",
         Total_Beds: 40,
         Occupied_Beds: 32,
     },
-     {
-        name: "Care Home 01",
+    {
+        id: 3,
+        name: "Care Home 04",
         status: "Closed",
         location: "London",
         Total_Beds: 40,
         Occupied_Beds: 32,
-    }
+    },
 ]
