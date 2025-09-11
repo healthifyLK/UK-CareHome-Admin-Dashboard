@@ -6,10 +6,10 @@ import { Link } from 'react-router-dom'
 function CareHomeSummaryCard() {
 
   return (
-    <div className='grid grid-cols-[repeat(auto-fill,minmax(200px,500px))] gap-y-10 gap-x-5 justify-center py-5'>
+    <div className='grid grid-cols-[repeat(auto-fill,minmax(200px,500px))] gap-y-10 gap-x-5 justify-center py-5 select-none'>
         {CareHomes.map((item, index) => {
             return(
-                <Link to={`care-home/${item.id}`} state={item} key={index} className='flex flex-col gap-5 bg-white w-fit py-5 px-5 rounded-md cursor-pointer transition duration-200 ease-in hover:scale-[1.05]'>
+                <Link to={`/care-homes/${item.id}`} state={item} key={index} className='flex flex-col gap-5 bg-white w-fit py-5 px-5 rounded-md cursor-pointer transition duration-200 ease-in hover:scale-[1.05]'>
                     {/* Start of Title section*/}
                     <div className='flex justify-between'>
                         <div className='text-left text-gray-700'>

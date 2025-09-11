@@ -11,9 +11,8 @@ const CareHomes = () => {
         <h1 className={Styles.TitleText}>Care Homes</h1>
         <AddNewBts btn_name="Care Home" />
       </div>
-
       {/* Start of Care Home Summary Card Container */}
-      <div className='overflow-y-scroll scroll-smooth mt-5'>
+      <div className='overflow-y-scroll scroll-smooth'>
         <CareHomeSummaryCard/>
       </div>
       {/* End of Care Home Summary Card Container */}
