@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { CareHomes } from '../assets/assets';
+import { Styles } from '../Styles/Styles';
 
 const AllocationTable = ({initialData, availableCareGivers}) => {
 
@@ -109,26 +110,26 @@ const AllocationTable = ({initialData, availableCareGivers}) => {
 
       {/* Table */}
       <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-gray-100">
+        <table className={Styles.Table}>
+          <thead className={Styles.TableHead}>
             <tr>
-              <th className="px-4 py-3 text-left font-semibold text-gray-700">Bed</th>
-              <th className="px-4 py-3 text-left font-semibold text-gray-700">Care Receiver</th>
-              <th className="px-4 py-3 text-left font-semibold text-gray-700">Care Giver 1</th>
-              <th className="px-4 py-3 text-left font-semibold text-gray-700">Care Giver 2</th>
-              <th className="px-4 py-3 text-left font-semibold text-gray-700">Actions</th>
+              <th className={Styles.TableHeader}>Bed</th>
+              <th className={Styles.TableHeader}>Care Receiver</th>
+              <th className={Styles.TableHeader}>Care Giver 1</th>
+              <th className={Styles.TableHeader}>Care Giver 2</th>
+              <th className={Styles.TableHeader}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {paginatedData.map((row, index) => (
               <tr key={row.id} className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                <td className="px-4 py-2 text-base font-normal border-b-gray-300 border-b">{row.bed}</td>
-                <td className="px-4 py-2 text-base font-normal border-b-gray-300 border-b">{row.careReceiver}</td>
-                <td className="px-4 py-2 text-base font-normal border-b-gray-300 border-b">{row.careGiver1}</td>
-                <td className="px-4 py-2 text-base font-normal border-b-gray-300 border-b">
+                <td className={Styles.TableData}>{row.bed}</td>
+                <td className={Styles.TableData}>{row.careReceiver}</td>
+                <td className={Styles.TableData}>{row.careGiver1}</td>
+                <td className={Styles.TableData}>
                   <CareGiver2Cell row={row} />
                 </td>
-                <td className="px-4 py-2 text-base font-normal border-b-gray-300 border-b">
+                <td className={Styles.TableData}>
                   <ActionCell row={row} />
                 </td>
               </tr>

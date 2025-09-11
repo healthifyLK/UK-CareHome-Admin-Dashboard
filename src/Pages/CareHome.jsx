@@ -71,9 +71,9 @@ function CareHome() {
             <div className='flex flex-col mt-10'>
                 <CareHomeTableFilter filter={filter} setFilter={setFilter}/>
                 {(filter === "Allocations") ? <AllocationTable initialData={Allocations} availableCareGivers={CareGivers}/> : 
-                (filter === "Care Receivers") ? <CareReceiverTable/> :
-                (filter === "Care Givers") ? <CareGiverTable/> : 
-                (filter === "Beds") ? <BedsTable/> :
+                (filter === "Care Receivers") ? <CareReceiverTable care_home={careHomeData?.name} rows_per_page={5}/> :
+                (filter === "Care Givers") ? <CareGiverTable care_home={careHomeData?.name} rows_per_page={5}/> : 
+                (filter === "Beds") ? <BedsTable care_home={careHomeData?.name} rows_per_page={5}/> :
                 ''}
             </div>
             {/* End of Care Home Data section*/}

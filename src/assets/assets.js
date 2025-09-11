@@ -49,7 +49,7 @@ export const TableFilterBtn = ["Allocations", "Care Receivers", "Care Givers", "
 export const CareHomes = [
     {
         id: 1,
-        name: "Care Home 02",
+        name: "Care Home 2",
         status: "Active",
         location: "London",
         Total_Beds: 40,
@@ -70,7 +70,7 @@ export const CareHomes = [
     },
     {
         id: 2,
-        name: "Care Home 03",
+        name: "Care Home 3",
         status: "Active",
         location: "London",
         Total_Beds: 40,
@@ -78,7 +78,7 @@ export const CareHomes = [
     },
     {
         id: 3,
-        name: "Care Home 04",
+        name: "Care Home 4",
         status: "Closed",
         location: "London",
         Total_Beds: 40,
@@ -86,15 +86,58 @@ export const CareHomes = [
     },
 ]
 
+export const CareHomeNames = ["Care Home 1", "Care Home 2", "Care Home 3", "Care Home 4"]
+
+export const careBedTableHeader = ["ID", "Bed Name", "Care Home", "Status", "Condition"]
+export const careGiverTableHeader = ["ID", "First Name", "Last Name", "Current Care Home", "Number of Patients", "Remaining Leaves"]
+export const careReceiverTableHeader = ["ID", "First Name", "Last Name", "Current Care Home", "Age", "Care Giver 1", "Care Giver 2", "# of E. Contacts", "Flags", "Condition"]
+
+
 export const careBedsData = [
     { id: 1, bed: "CH101", CareHome: "Care Home 1", Status: "Occupied", Condition: "Good" },
     { id: 2, bed: "CH102", CareHome: "Care Home 1", Status: "Occupied", Condition: "Good" },
-    { id: 3, bed: "CH103", CareHome: "Care Home 1", Status: "Occupied", Condition: "Good" },
-    { id: 4, bed: "CH104", CareHome: "Care Home 1", Status: "Occupied", Condition: "Good" },
-    { id: 5, bed: "CH105", CareHome: "Care Home 1", Status: "Occupied", Condition: "Good" },
+    { id: 3, bed: "CH103", CareHome: "Care Home 2", Status: "Occupied", Condition: "Good" },
+    { id: 4, bed: "CH104", CareHome: "Care Home 3", Status: "Occupied", Condition: "Good" },
+    { id: 5, bed: "CH105", CareHome: "Care Home 2", Status: "Occupied", Condition: "Good" },
     { id: 6, bed: "CH106", CareHome: "Care Home 1", Status: "Occupied", Condition: "Good" },
-    { id: 7, bed: "CH107", CareHome: "Care Home 1", Status: "Occupied", Condition: "Good" },
+    { id: 7, bed: "CH107", CareHome: "Care Home 3", Status: "Occupied", Condition: "Good" },
     { id: 8, bed: "CH108", CareHome: "Care Home 1", Status: "Occupied", Condition: "Good" },
-    { id: 9, bed: "CH109", CareHome: "Care Home 1", Status: "Occupied", Condition: "Good" },
-    { id: 10, bed: "CH110", CareHome: "Care Home 1", Status: "Occupied", Condition: "Good" },
+    { id: 9, bed: "CH109", CareHome: "Care Home 3", Status: "Occupied", Condition: "Good" },
+    { id: 10, bed: "CH110", CareHome: "Care Home 2", Status: "Occupied", Condition: "Good" },
 ]
+
+export const careGiverData = [
+  { id: 1, FirstName: "Alice", LastName: "Johnson", CareHome: "Care Home 2", P_count: 12, R_Leave: 2 },
+  { id: 2, FirstName: "Brian", LastName: "Smith", CareHome: "Care Home 2", P_count: 8, R_Leave: 1 },
+  { id: 3, FirstName: "Clara", LastName: "Shoemaker", CareHome: "Care Home 2", P_count: 15, R_Leave: 3 },
+  { id: 4, FirstName: "Daniel", LastName: "Lee", CareHome: "Care Home 2", P_count: 10, R_Leave: 0 },
+  { id: 5, FirstName: "Eva", LastName: "Martinez", CareHome: "Care Home 2", P_count: 9, R_Leave: 2 },
+  { id: 6, FirstName: "Frank", LastName: "Brown", CareHome: "Care Home 2", P_count: 7, R_Leave: 1 },
+  { id: 7, FirstName: "Grace", LastName: "Kim", CareHome: "Care Home 2", P_count: 14, R_Leave: 0 },
+  { id: 8, FirstName: "Henry", LastName: "Wilson", CareHome: "Care Home 2", P_count: 11, R_Leave: 3 },
+  { id: 9, FirstName: "Isabella", LastName: "Davis", CareHome: "Care Home 2", P_count: 8, R_Leave: 1 },
+  { id: 10, FirstName: "Jack", LastName: "Garcia", CareHome: "Care Home 2", P_count: 13, R_Leave: 2 },
+  { id: 11, FirstName: "Karen", LastName: "Nguyen", CareHome: "Care Home 2", P_count: 9, R_Leave: 0 },
+  { id: 12, FirstName: "Leo", LastName: "Gonzalez", CareHome: "Care Home 2", P_count: 10, R_Leave: 1 },
+  { id: 13, FirstName: "Mia", LastName: "Patel", CareHome: "Care Home 2", P_count: 12, R_Leave: 2 },
+  { id: 14, FirstName: "Noah", LastName: "Clark", CareHome: "Care Home 2", P_count: 7, R_Leave: 0 },
+  { id: 15, FirstName: "Olivia", LastName: "Rodriguez", CareHome: "Care Home 2", P_count: 11, R_Leave: 2 }
+];
+
+export const careReceiverData = [
+  { id: 1, FirstName: "John", LastName: "Doe", CareHome: "Care Home 2", Age: 72, CareGiver1: "Alice", CareGiver2: "Brian", EmergencyContacts: 3, Flags: "None", Condition: "Stable" },
+  { id: 2, FirstName: "Mary", LastName: "Smith", CareHome: "Care Home 2", Age: 68, CareGiver1: "Clara", CareGiver2: "Daniel", EmergencyContacts: 2, Flags: "Fall Risk", Condition: "Recovering" },
+  { id: 3, FirstName: "James", LastName: "White", CareHome: "Care Home 2", Age: 80, CareGiver1: "Eva", CareGiver2: "Frank", EmergencyContacts: 1, Flags: "Diabetic", Condition: "Stable" },
+  { id: 4, FirstName: "Patricia", LastName: "Johnson", CareHome: "Care Home 2", Age: 75, CareGiver1: "Grace", CareGiver2: "Henry", EmergencyContacts: 4, Flags: "None", Condition: "Under Observation" },
+  { id: 5, FirstName: "Robert", LastName: "Brown", CareHome: "Care Home 2", Age: 78, CareGiver1: "Isabella", CareGiver2: "Jack", EmergencyContacts: 2, Flags: "High Blood Pressure", Condition: "Stable" },
+  { id: 6, FirstName: "Linda", LastName: "Garcia", CareHome: "Care Home 2", Age: 70, CareGiver1: "Karen", CareGiver2: "Leo", EmergencyContacts: 3, Flags: "None", Condition: "Recovering" },
+  { id: 7, FirstName: "Charles", LastName: "Martinez", CareHome: "Care Home 2", Age: 82, CareGiver1: "Mia", CareGiver2: "Noah", EmergencyContacts: 1, Flags: "None", Condition: "Stable" },
+  { id: 8, FirstName: "Barbara", LastName: "Davis", CareHome: "Care Home 2", Age: 69, CareGiver1: "Olivia", CareGiver2: "Paul", EmergencyContacts: 2, Flags: "Memory Loss", Condition: "Under Observation" },
+  { id: 9, FirstName: "Michael", LastName: "Lopez", CareHome: "Care Home 2", Age: 76, CareGiver1: "Quinn", CareGiver2: "Rachel", EmergencyContacts: 3, Flags: "Fall Risk", Condition: "Stable" },
+  { id: 10, FirstName: "Elizabeth", LastName: "Gonzalez", CareHome: "Care Home 2", Age: 74, CareGiver1: "Steve", CareGiver2: "Tom", EmergencyContacts: 2, Flags: "None", Condition: "Recovering" },
+  { id: 11, FirstName: "Joseph", LastName: "Wilson", CareHome: "Care Home 2", Age: 73, CareGiver1: "Uma", CareGiver2: "Victor", EmergencyContacts: 3, Flags: "Diabetic", Condition: "Stable" },
+  { id: 12, FirstName: "Susan", LastName: "Anderson", CareHome: "Care Home 2", Age: 71, CareGiver1: "Wendy", CareGiver2: "Xavier", EmergencyContacts: 2, Flags: "None", Condition: "Under Observation" },
+  { id: 13, FirstName: "Thomas", LastName: "Thomas", CareHome: "Care Home 2", Age: 77, CareGiver1: "Yara", CareGiver2: "Zach", EmergencyContacts: 1, Flags: "High Blood Pressure", Condition: "Stable" },
+  { id: 14, FirstName: "Jessica", LastName: "Taylor", CareHome: "Care Home 2", Age: 67, CareGiver1: "Alice", CareGiver2: "Brian", EmergencyContacts: 3, Flags: "None", Condition: "Recovering" },
+  { id: 15, FirstName: "Daniel", LastName: "Moore", CareHome: "Care Home 2", Age: 79, CareGiver1: "Clara", CareGiver2: "Daniel", EmergencyContacts: 2, Flags: "None", Condition: "Stable" }
+];

@@ -1,6 +1,7 @@
 import React from 'react'
 import AddNewBts from '../Components/AddNewBts'
 import { Styles } from '../Styles/Styles'
+import BedsTable from '../Components/BedsTable'
 
 export default function CareBeds() {
   return (
@@ -10,6 +11,9 @@ export default function CareBeds() {
             <AddNewBts btn_name="Care Bed"/>
         </div>
         
+        <div>
+          <BedsTable rows_per_page={10}/>
+        </div>
     </div>
   )
 }
