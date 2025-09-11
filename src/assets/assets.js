@@ -42,3 +42,28 @@ export const SideMenuItems = [
     },
     
 ]
+
+
+export const CareHomes = [
+    {
+        name: "Care Home 01",
+        status: "Active",
+        location: "London",
+        Total_Beds: 40,
+        Occupied_Beds: 32,
+    },
+     {
+        name: "Care Home 01",
+        status: "Active",
+        location: "London",
+        Total_Beds: 40,
+        Occupied_Beds: 32,
+    },
+     {
+        name: "Care Home 01",
+        status: "Closed",
+        location: "London",
+        Total_Beds: 40,
+        Occupied_Beds: 32,
+    }
+]
