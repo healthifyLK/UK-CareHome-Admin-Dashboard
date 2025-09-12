@@ -65,7 +65,7 @@ function CareReceiverTable({ care_home, rows_per_page }) {
   };
 
   const handleOpen = (id) => {
-    navigate(`/care-receiver/${id}`);
+    navigate(`/care-receivers/${id}`);
   };
 
   // Editable CareGiver2 cell
