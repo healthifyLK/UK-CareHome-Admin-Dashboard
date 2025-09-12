@@ -9,7 +9,7 @@ const CareHomes = () => {
     <div className={Styles.PageStyle}>
       <div className={Styles.PageTopContainer}>
         <h1 className={Styles.TitleText}>Care Homes</h1>
-        <AddNewBts btn_name="Care Home" />
+        <AddNewBts link_path={'/care-homes/add'}btn_name="Care Home" />
       </div>
       {/* Start of Care Home Summary Card Container */}
       <div className='overflow-y-scroll scroll-smooth'>

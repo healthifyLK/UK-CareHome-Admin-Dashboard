@@ -1,34 +1,112 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { careBedTableHeader, careGiverData, careGiverTableHeader } from '../assets/assets';
+import { careGiverTableHeader } from '../assets/assets';
 import { Styles } from '../Styles/Styles';
 import { useNavigate } from 'react-router-dom';
+import caregiversService from '../services/caregiversService';
+import locationsService from '../services/locationService';
 
 function CareGiverTable({ care_home, rows_per_page }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(rows_per_page);
-  const [data, setData] = useState(careGiverData);
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [locations, setLocations] = useState([]);
+  const [locationsLoading, setLocationsLoading] = useState(true);
 
   const navigate = useNavigate();
 
-  // Filter data based on care_home prop
+  // Fetch locations for name resolution
+  useEffect(() => {
+    const loadLocations = async () => {
+      try {
+        setLocationsLoading(true);
+        const locationsData = await locationsService.getAllLocations();
+        setLocations(locationsData || []);
+      } catch (error) {
+        console.error('Error loading locations:', error);
+        setLocations([]);
+      } finally {
+        setLocationsLoading(false);
+      }
+    };
+    loadLocations();
+  }, []);
+
+  // Fetch caregivers from backend
+  useEffect(() => {
+    const loadCaregivers = async () => {
+      try {
+        setLoading(true);
+        const caregiversData = await caregiversService.getAllCaregivers();
+        setData(caregiversData || []);
+      } catch (error) {
+        console.error('Error loading caregivers:', error);
+        setData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadCaregivers();
+  }, []);
+
+  // Helper function to get location name by ID
+  const getLocationName = (locationId) => {
+    if (!locationId || locationsLoading) return 'Loading...';
+    const location = locations.find(loc => loc.id === locationId);
+    return location ? location.name : `Unknown (${locationId})`;
+  };
+
+  // Helper function to format employment type
+  const getEmploymentTypeDisplay = (employmentType) => {
+    if (!employmentType) return '';
+    return employmentType.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+  };
+
+  // Helper function to calculate age from birthdate
+  const calculateAge = (birthdate) => {
+    if (!birthdate) return '';
+    const birth = new Date(birthdate);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
+  // Filter data by care_home prop (using location names)
   const filteredByHome = useMemo(() => {
     if (care_home && care_home !== 'All') {
-      return data.filter(item => item.CareHome === care_home);
+      return data.filter(item => {
+        const locationName = getLocationName(item.locationId);
+        return locationName === care_home;
+      });
     }
     return data;
-  }, [data, care_home]);
+  }, [data, care_home, locations, locationsLoading]);
 
   // Filter data by search term
   const filteredData = useMemo(() => {
     if (!searchTerm) return filteredByHome;
     const lowerSearch = searchTerm.toLowerCase();
-    return filteredByHome.filter(row =>
-      Object.values(row).some(value =>
-        value?.toString().toLowerCase().includes(lowerSearch)
-      )
-    );
-  }, [filteredByHome, searchTerm]);
+    return filteredByHome.filter(row => {
+      const locationName = getLocationName(row.locationId);
+      const searchableFields = [
+        row.firstName,
+        row.lastName,
+        row.email,
+        row.employeeId,
+        locationName,
+        getEmploymentTypeDisplay(row.employmentType)
+      ];
+      
+      return searchableFields.some(field => 
+        field && field.toString().toLowerCase().includes(lowerSearch)
+      );
+    });
+  }, [filteredByHome, searchTerm, locations, locationsLoading]);
 
   // Pagination calculations
   const totalRows = filteredData.length;
@@ -36,21 +114,26 @@ function CareGiverTable({ care_home, rows_per_page }) {
   const startIndex = (currentPage - 1) * perPage;
   const paginatedData = filteredData.slice(startIndex, startIndex + perPage);
 
-  // Reset current page when filters or perPage change
+  // Reset page on search, care_home, or perPage change
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, care_home, perPage]);
 
+  // Handlers
   const handleOpen = (id) => {
-    // Navigate to details page for caregiver with this id
     navigate(`/care-givers/${id}`);
   };
 
-  const handleDelete = (id) => {
-    setData(prevData => prevData.filter(item => item.id !== id));
-    // Adjust current page if deleting last item on page
-    if ((totalRows - 1) / perPage < currentPage && currentPage > 1) {
-      setCurrentPage(currentPage - 1);
+  const handleDelete = async (id) => {
+    try {
+      // Update status to TERMINATED instead of actual deletion
+      await caregiversService.updateCaregiverStatus(id, 'TERMINATED');
+      setData(prev => prev.filter(item => item.id !== id));
+      if ((totalRows - 1) / perPage < currentPage && currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+      }
+    } catch (error) {
+      console.error('Error updating caregiver status:', error);
     }
   };
 
@@ -60,7 +143,7 @@ function CareGiverTable({ care_home, rows_per_page }) {
       <div className="p-4 bg-blue-50 border-b flex gap-3 items-center">
         <input
           type="text"
-          placeholder="Search..."
+          placeholder="Search caregivers..."
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
           className="px-3 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -85,40 +168,54 @@ function CareGiverTable({ care_home, rows_per_page }) {
           </tr>
         </thead>
         <tbody>
-          {paginatedData.length > 0 ? (
+          {loading || locationsLoading ? (
+            <tr>
+              <td colSpan={careGiverTableHeader.length + 1} className="text-center py-4">
+                Loading...
+              </td>
+            </tr>
+          ) : paginatedData.length > 0 ? (
             paginatedData.map((item, index) => (
               <tr
                 key={item.id || index}
                 className={index % 2 === 0 ? 'bg-gray-100' : 'bg-gray-50'}
               >
-                <td className={Styles.TableData}>{item.id}</td>
-                <td className={Styles.TableData}>{item.FirstName}</td>
-                <td className={Styles.TableData}>{item.LastName}</td>
-                <td className={Styles.TableData}>{item.CareHome}</td>
-                <td className={Styles.TableData}>{item.P_count}</td>
-                <td className={Styles.TableData}>{item.R_Leave}</td>
+                <td className={Styles.TableData}>{item.employeeId}</td>
+                <td className={Styles.TableData}>{item.firstName}</td>
+                <td className={Styles.TableData}>{item.lastName}</td>
                 <td className={Styles.TableData}>
-                  <button
-                    type="button"
-                    onClick={() => handleOpen(item.id)}
-                    className="bg-blue-500 py-1 px-2 text-white rounded-sm mr-2"
-                  >
-                    Open
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(item.id)}
-                    className="bg-red-600 py-1 px-2 text-white rounded-sm"
-                  >
-                    Delete
-                  </button>
+                  {getLocationName(item.locationId)}
+                </td>
+                <td className={Styles.TableData}>
+                  {calculateAge(item.dateOfBirth)}
+                </td>
+                <td className={Styles.TableData}>
+                  {getEmploymentTypeDisplay(item.employmentType)}
+                </td>
+                <td className={Styles.TableData}>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleOpen(item.id)}
+                      className="bg-blue-500 py-1 px-2 text-white rounded-sm text-sm"
+                    >
+                      Open
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(item.id)}
+                      className="bg-red-600 py-1 px-2 text-white rounded-sm text-sm"
+                    >
+                      Terminate
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))
           ) : (
             <tr>
               <td colSpan={careGiverTableHeader.length + 1} className="text-center py-4">
-                No data found.
+                No caregivers found.
               </td>
             </tr>
           )}

@@ -1,35 +1,136 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { availableCareGivers, careReceiverData, careReceiverTableHeader } from '../assets/assets';
+import { availableCareGivers, careReceiverTableHeader } from '../assets/assets';
 import { Styles } from '../Styles/Styles';
 import { useNavigate } from 'react-router-dom';
+import careReceiversService from '../services/careReceiversService';
+import locationsService from '../services/locationService';
 
 function CareReceiverTable({ care_home, rows_per_page }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(rows_per_page);
-  const [data, setData] = useState(careReceiverData);
+  const [data, setData] = useState([]);
   const [editingRow, setEditingRow] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [locations, setLocations] = useState([]);
+  const [locationsLoading, setLocationsLoading] = useState(true);
 
   const navigate = useNavigate();
 
-  // Filter data by care_home prop
+  // Fetch locations for name resolution
+  useEffect(() => {
+    const loadLocations = async () => {
+      try {
+        setLocationsLoading(true);
+        const locationsData = await locationsService.getAllLocations();
+        setLocations(locationsData || []);
+      } catch (error) {
+        console.error('Error loading locations:', error);
+        setLocations([]);
+      } finally {
+        setLocationsLoading(false);
+      }
+    };
+    loadLocations();
+  }, []);
+
+  // Fetch data from backend
+  useEffect(() => {
+    setLoading(true);
+    careReceiversService.getAllCareReceivers()
+      .then(setData)
+      .catch(() => setData([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Helper function to get location name by ID
+  const getLocationName = (locationId) => {
+    if (!locationId || locationsLoading) return 'Loading...';
+    const location = locations.find(loc => loc.id === locationId);
+    return location ? location.name : `Unknown (${locationId})`;
+  };
+
+  // Helper function to count emergency contacts
+  const getEmergencyContactsCount = (emergencyContacts) => {
+    if (!emergencyContacts || !Array.isArray(emergencyContacts)) return '0';
+    return emergencyContacts.length.toString();
+  };
+
+  // Helper function to get care level display
+  const getCareLevelDisplay = (careLevel) => {
+    if (!careLevel) return '';
+    return careLevel.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+  };
+
+  // Helper function to get mobility level display
+  const getMobilityDisplay = (mobilityLevel) => {
+    if (!mobilityLevel) return '';
+    return mobilityLevel.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+  };
+
+  // Helper function to get mental capacity display
+  const getMentalCapacityDisplay = (mentalCapacityLevel) => {
+    if (!mentalCapacityLevel) return '';
+    return mentalCapacityLevel.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+  };
+
+  // Helper function to get status display
+  const getStatusDisplay = (status) => {
+    if (!status) return '';
+    return status.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+  };
+
+  const formatAdmissionDate = (admissionDate) => {
+    if (!admissionDate) return 'Not available';
+    try {
+      const date = new Date(admissionDate);
+      return date.toLocaleDateString('en-GB',{
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      });
+    } catch (error) {
+      console.error('Error formatting admission date:', error);
+      return 'Invalid date';
+    }
+  }
+
+  // Filter data by care_home prop (now using location names)
   const filteredByHome = useMemo(() => {
     if (care_home && care_home !== 'All') {
-      return data.filter(item => item.CareHome === care_home);
+      return data.filter(item => {
+        const locationName = getLocationName(item.locationId);
+        return locationName === care_home;
+      });
     }
     return data;
-  }, [data, care_home]);
+  }, [data, care_home, locations, locationsLoading]);
 
   // Filter data by search term
   const filteredData = useMemo(() => {
     if (!searchTerm) return filteredByHome;
     const lowerSearch = searchTerm.toLowerCase();
-    return filteredByHome.filter(row =>
-      Object.values(row).some(value =>
-        value?.toString().toLowerCase().includes(lowerSearch)
-      )
-    );
-  }, [filteredByHome, searchTerm]);
+    return filteredByHome.filter(row => {
+      // Include location name in search
+      const locationName = getLocationName(row.locationId);
+      const searchableFields = [
+        row.firstName,
+        row.lastName,
+        locationName,
+        row.medicalRecordNumber,
+        row.presentAddress,
+        row.nationality,
+        getCareLevelDisplay(row.careLevel),
+        getMobilityDisplay(row.mobilityLevel),
+        getMentalCapacityDisplay(row.mentalCapacityLevel),
+        getStatusDisplay(row.status)
+      ];
+      
+      return searchableFields.some(field => 
+        field && field.toString().toLowerCase().includes(lowerSearch)
+      );
+    });
+  }, [filteredByHome, searchTerm, locations, locationsLoading]);
 
   // Pagination calculations
   const totalRows = filteredData.length;
@@ -43,10 +144,15 @@ function CareReceiverTable({ care_home, rows_per_page }) {
   }, [searchTerm, care_home, perPage]);
 
   // Handlers
-  const handleDelete = (id) => {
-    setData(prev => prev.filter(row => row.id !== id));
-    if ((totalRows - 1) / perPage < currentPage && currentPage > 1) {
-      setCurrentPage(currentPage - 1);
+  const handleDischarge = async (id) => {
+    try {
+      await careReceiversService.dischargeCareReceiver(id);
+      setData(prev => prev.filter(row => row.id !== id));
+      if ((totalRows - 1) / perPage < currentPage && currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+      }
+    } catch (err) {
+      console.error('Error discharging care receiver:', err);
     }
   };
 
@@ -54,8 +160,16 @@ function CareReceiverTable({ care_home, rows_per_page }) {
     setEditingRow(id);
   };
 
-  const handleDone = () => {
-    setEditingRow(null);
+  const handleDone = async (id, updatedRow) => {
+    try {
+      await careReceiversService.updateCareReceiver(id, updatedRow);
+      setEditingRow(null);
+      setData(prev =>
+        prev.map(row => (row.id === id ? { ...row, ...updatedRow } : row))
+      );
+    } catch (err) {
+      console.error('Error updating care receiver:', err);
+    }
   };
 
   const handleCareGiver2Change = (id, newValue) => {
@@ -68,13 +182,27 @@ function CareReceiverTable({ care_home, rows_per_page }) {
     navigate(`/care-receivers/${id}`);
   };
 
+  // Helper to calculate age from birthdate
+  const calculateAge = (birthdate) => {
+    if (!birthdate) return '';
+    const birth = new Date(birthdate);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
   // Editable CareGiver2 cell
   const CareGiver2Cell = ({ row }) =>
     editingRow === row.id ? (
       <select
-        value={row.CareGiver2}
+        value={row.CareGiver2 || ''}
         onChange={e => handleCareGiver2Change(row.id, e.target.value)}
         className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <option value="">Select Caregiver</option>
         {availableCareGivers.map(cg => (
           <option key={cg} value={cg}>
             {cg}
@@ -82,7 +210,7 @@ function CareReceiverTable({ care_home, rows_per_page }) {
         ))}
       </select>
     ) : (
-      <span>{row.CareGiver2}</span>
+      <span>{row.CareGiver2 || 'Not assigned'}</span>
     );
 
   return (
@@ -113,28 +241,37 @@ function CareReceiverTable({ care_home, rows_per_page }) {
                 {header}
               </th>
             ))}
-            
           </tr>
         </thead>
         <tbody>
-          {paginatedData.length > 0 ? (
+          {loading || locationsLoading ? (
+            <tr>
+              <td colSpan={careReceiverTableHeader.length + 1} className="text-center py-4">
+                Loading...
+              </td>
+            </tr>
+          ) : paginatedData.length > 0 ? (
             paginatedData.map((item, index) => (
               <tr
                 key={item.id || index}
                 className={index % 2 === 0 ? 'bg-gray-100' : 'bg-gray-50'}
               >
                 <td className={Styles.TableData}>{item.id}</td>
-                <td className={Styles.TableData}>{item.FirstName}</td>
-                <td className={Styles.TableData}>{item.LastName}</td>
-                <td className={Styles.TableData}>{item.CareHome}</td>
-                <td className={Styles.TableData}>{item.Age}</td>
-                <td className={Styles.TableData}>{item.CareGiver1}</td>
+                <td className={Styles.TableData}>{item.firstName}</td>
+                <td className={Styles.TableData}>{item.lastName}</td>
                 <td className={Styles.TableData}>
-                  <CareGiver2Cell row={item} />
+                  {getLocationName(item.locationId)}
                 </td>
-                <td className={Styles.TableData}>{item.EmergencyContacts}</td>
-                <td className={Styles.TableData}>{item.Flags}</td>
-                <td className={Styles.TableData}>{item.Condition}</td>
+                <td className={Styles.TableData}>
+                  {calculateAge(item.dateOfBirth)}
+                </td>
+                <td className={Styles.TableData}>{item.CareGiver1 || 'Not assigned'}</td>
+                <td className={Styles.TableData}>{formatAdmissionDate(item.admissionDate)}</td>
+                <td className={Styles.TableData}>
+                  {getEmergencyContactsCount(item.emergencyContacts)}
+                </td>
+                <td className={Styles.TableData}>{getStatusDisplay(item.status)}</td>
+                <td className={Styles.TableData}>{getCareLevelDisplay(item.careLevel)}</td>
                 <td className={Styles.TableData}>
                   <div className="flex gap-3">
                     <button
@@ -144,11 +281,11 @@ function CareReceiverTable({ care_home, rows_per_page }) {
                     >
                       Open
                     </button>
-                    {editingRow === item.id ? (
+                    {/* {editingRow === item.id ? (
                       <button
                         className="bg-green-600 py-1 px-1.5 text-white text-sm rounded-sm"
                         type="button"
-                        onClick={handleDone}
+                        onClick={() => handleDone(item.id, item)}
                       >
                         Done
                       </button>
@@ -160,13 +297,13 @@ function CareReceiverTable({ care_home, rows_per_page }) {
                       >
                         Edit
                       </button>
-                    )}
+                    )} */}
                     <button
                       className="bg-red-500 py-1 px-1.5 text-white text-sm rounded-sm"
                       type="button"
-                      onClick={() => handleDelete(item.id)}
+                      onClick={() => handleDischarge(item.id)}
                     >
-                      Delete
+                      Discharge
                     </button>
                   </div>
                 </td>
