@@ -8,7 +8,7 @@ export default function CareBeds() {
     <div className={Styles.PageStyle}>
         <div className={Styles.PageTopContainer}>
             <h1 className={Styles.TitleText}>Care Beds</h1>
-            <AddNewBts btn_name="Care Bed"/>
+            <AddNewBts link_path={'/care-beds/register'} btn_name="Care Bed"/>
         </div>
         
         <div className='overflow-y-scroll relative'>

@@ -12,7 +12,7 @@ const CareGivers = () => {
     <div className={Styles.PageStyle}>
       <div className={Styles.PageTopContainer}>
         <h1 className={Styles.TitleText}>Care Givers</h1>
-        <AddNewBts btn_name="Care Givers" />
+        <AddNewBts link_path={'/care-givers/register'} btn_name="Care Givers" />
       </div>
 
       <div className='overflow-y-scroll relative'>

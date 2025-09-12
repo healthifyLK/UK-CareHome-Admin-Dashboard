@@ -12,7 +12,7 @@ function CareReceivers() {
     <div className={Styles.PageStyle}>
       <div className={Styles.PageTopContainer}>
         <h1 className={Styles.TitleText}>Care Receivers</h1>
-        <AddNewBts btn_name={"Care Receiver"} />
+        <AddNewBts link_path={"/care-receivers/register"} btn_name={"Care Receiver"} />
       </div>
 
       <div className='overflow-y-scroll relative'>

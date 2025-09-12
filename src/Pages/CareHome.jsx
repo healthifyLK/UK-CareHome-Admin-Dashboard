@@ -18,8 +18,6 @@ function CareHome() {
     const location = useLocation();
     const careHomeData = location.state;
 
-    console.log("Location state:", location.state);
-    console.log("Care home data:", careHomeData);
 
     const Allocations = careHomeData?.Allocations || [];
     const CareGivers = careHomeData?.CareGivers || [];

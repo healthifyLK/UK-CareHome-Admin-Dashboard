@@ -9,6 +9,10 @@ import CareGivers from './Pages/CareGivers'
 import CareBeds from './Pages/CareBeds'
 import Roster from './Pages/Roster'
 import CareHome from './Pages/CareHome';
+import CareGiverRegForm from './Components/CareGiverRegForm';
+import CareGiverRegPage from './Pages/CareGiverRegPage';
+import CareReceiverReg from './Pages/CareReceiverReg';
+import CareBedReg from './Pages/CareBedReg';
 
 function App() {
 
@@ -26,6 +30,10 @@ function App() {
             <Route path='/roster' element={<Roster />} />
             <Route path='/care-beds' element={<CareBeds />} />
             <Route path='/care-homes/:id' element={<CareHome />} />
+            <Route path='/care-givers/register' element={<CareGiverRegPage />} />
+            <Route path='/care-receivers/register' element={<CareReceiverReg />} />
+            <Route path='/care-beds/register' element={<CareBedReg />} />
+
           </Routes>
         </div>
       </div>
