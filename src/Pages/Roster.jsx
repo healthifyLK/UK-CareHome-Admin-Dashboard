@@ -8,7 +8,7 @@ function Roster() {
     <div className={Styles.PageStyle}>
       <div className={Styles.PageTopContainer}>
         <h1 className={Styles.TitleText}>Rosters</h1>
-        <AddNewBts btn_name="Shift" />
+        <AddNewBts link_path={"/roster/add"} btn_name="Shift" />
       </div>
       <div className='overflow-y-scroll relative'>
         <RosterArea/>

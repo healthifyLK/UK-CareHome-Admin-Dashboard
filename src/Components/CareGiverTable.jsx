@@ -43,7 +43,7 @@ function CareGiverTable({ care_home, rows_per_page }) {
 
   const handleOpen = (id) => {
     // Navigate to details page for caregiver with this id
-    navigate(`/caregiver/${id}`);
+    navigate(`/care-givers/${id}`);
   };
 
   const handleDelete = (id) => {

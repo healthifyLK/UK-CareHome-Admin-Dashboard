@@ -13,6 +13,9 @@ import CareGiverRegForm from './Components/CareGiverRegForm';
 import CareGiverRegPage from './Pages/CareGiverRegPage';
 import CareReceiverReg from './Pages/CareReceiverReg';
 import CareBedReg from './Pages/CareBedReg';
+import RosterAddPage from './Pages/RosterAddPage';
+import CareReceiver from './Pages/CareReceiver';
+import CareGiver from './Pages/CareGiver';
 
 function App() {
 
@@ -33,7 +36,9 @@ function App() {
             <Route path='/care-givers/register' element={<CareGiverRegPage />} />
             <Route path='/care-receivers/register' element={<CareReceiverReg />} />
             <Route path='/care-beds/register' element={<CareBedReg />} />
-
+            <Route path='/roster/add' element={<RosterAddPage />} />
+            <Route path='/care-receivers/:id' element={<CareReceiver />} />
+            <Route path='/care-givers/:id' element={<CareGiver />} />
           </Routes>
         </div>
       </div>
