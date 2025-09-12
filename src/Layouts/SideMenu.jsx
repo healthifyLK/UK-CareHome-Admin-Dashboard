@@ -10,7 +10,7 @@ function SideMenu() {
         <nav className='flex flex-col gap-5'>
             {SideMenuItems.map((item, index) => {
                 return(
-                    <NavLink to={item.path} key={index} className={({ isActive }) => `${isActive ? "bg-blue-700 hover:bg-blue-700" : ""} flex gap-4 py-3 px-5 items-center rounded-lg text-white transition duration-100 ease-in cursor-pointer hover:bg-blue-500`}>
+                    <NavLink to={item.path} key={index} className={({ isActive }) => `${isActive ? "bg-blue-700 hover:bg-blue-700" : ""} flex gap-4 py-3 px-3 items-center rounded-lg text-white text-left transition duration-100 ease-in cursor-pointer hover:bg-blue-500`}>
                         <i className={`${item.icon} text-white scale-120 my-auto flex`} ></i>
                         <p>{item.name}</p>
                     </NavLink>
