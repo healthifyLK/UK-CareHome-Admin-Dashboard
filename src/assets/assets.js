@@ -4,15 +4,17 @@ import CareReceiversIcon from './Images/hand-holding-medical.svg'
 import CareGiversIcon from './Images/user-nurse.svg'
 import CareRosterIcon from './Images/calendar-clock.svg'
 import CareBedsIcon from './Images/hospital-bed.svg'
+import HealthifyLogo from './Images/Healthify-logo.png'
 
-export const IMG = [
+export const IMG = {
     Healthify_Logo,
     CareHomesIcon,
     CareReceiversIcon,
     CareGiversIcon,
     CareRosterIcon,
     CareBedsIcon,
-]
+    HealthifyLogo,
+}
 
 export const SideMenuItems = [
     {
