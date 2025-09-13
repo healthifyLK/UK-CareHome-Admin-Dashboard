@@ -4,6 +4,7 @@ import { Styles } from '../Styles/Styles';
 import { useNavigate } from 'react-router-dom';
 import caregiversService from '../services/caregiversService';
 import locationsService from '../services/locationService';
+import careReceiversService from '../services/careReceiversService';
 
 function CareGiverTable({ care_home, rows_per_page }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -13,6 +14,7 @@ function CareGiverTable({ care_home, rows_per_page }) {
   const [loading, setLoading] = useState(true);
   const [locations, setLocations] = useState([]);
   const [locationsLoading, setLocationsLoading] = useState(true);
+  const [patientCounts, setPatientCounts] = useState({});
 
   const navigate = useNavigate();
 
@@ -50,6 +52,35 @@ function CareGiverTable({ care_home, rows_per_page }) {
     loadCaregivers();
   }, []);
 
+  // Fetch patient counts for each caregiver
+  useEffect(() => {
+    const loadPatientCounts = async () => {
+      if (data.length === 0) return;
+
+      try {
+        // Get all care receivers
+        const careReceivers = await careReceiversService.getAllCareReceivers();
+        
+        // Count patients assigned to each caregiver
+        const counts = {};
+        
+        // For now, we'll count care receivers in the same location as the caregiver
+        // In a real implementation, you might have a direct assignment table
+        data.forEach(caregiver => {
+          const locationCareReceivers = careReceivers.filter(cr => cr.locationId === caregiver.locationId);
+          counts[caregiver.id] = locationCareReceivers.length;
+        });
+        
+        setPatientCounts(counts);
+      } catch (error) {
+        console.error('Error loading patient counts:', error);
+        setPatientCounts({});
+      }
+    };
+
+    loadPatientCounts();
+  }, [data]);
+
   // Helper function to get location name by ID
   const getLocationName = (locationId) => {
     if (!locationId || locationsLoading) return 'Loading...';
@@ -63,17 +94,9 @@ function CareGiverTable({ care_home, rows_per_page }) {
     return employmentType.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
   };
 
-  // Helper function to calculate age from birthdate
-  const calculateAge = (birthdate) => {
-    if (!birthdate) return '';
-    const birth = new Date(birthdate);
-    const today = new Date();
-    let age = today.getFullYear() - birth.getFullYear();
-    const m = today.getMonth() - birth.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
-      age--;
-    }
-    return age;
+  // Helper function to get patient count for a caregiver
+  const getPatientCount = (caregiverId) => {
+    return patientCounts[caregiverId] || 0;
   };
 
   // Filter data by care_home prop (using location names)
@@ -99,14 +122,15 @@ function CareGiverTable({ care_home, rows_per_page }) {
         row.email,
         row.employeeId,
         locationName,
-        getEmploymentTypeDisplay(row.employmentType)
+        getEmploymentTypeDisplay(row.employmentType),
+        getPatientCount(row.id).toString()
       ];
       
       return searchableFields.some(field => 
         field && field.toString().toLowerCase().includes(lowerSearch)
       );
     });
-  }, [filteredByHome, searchTerm, locations, locationsLoading]);
+  }, [filteredByHome, searchTerm, locations, locationsLoading, patientCounts]);
 
   // Pagination calculations
   const totalRows = filteredData.length;
@@ -170,7 +194,7 @@ function CareGiverTable({ care_home, rows_per_page }) {
         <tbody>
           {loading || locationsLoading ? (
             <tr>
-              <td colSpan={careGiverTableHeader.length + 1} className="text-center py-4">
+              <td colSpan={careGiverTableHeader.length} className="text-center py-4">
                 Loading...
               </td>
             </tr>
@@ -187,7 +211,9 @@ function CareGiverTable({ care_home, rows_per_page }) {
                   {getLocationName(item.locationId)}
                 </td>
                 <td className={Styles.TableData}>
-                  {calculateAge(item.dateOfBirth)}
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    {getPatientCount(item.id)} patients
+                  </span>
                 </td>
                 <td className={Styles.TableData}>
                   {getEmploymentTypeDisplay(item.employmentType)}
@@ -214,7 +240,7 @@ function CareGiverTable({ care_home, rows_per_page }) {
             ))
           ) : (
             <tr>
-              <td colSpan={careGiverTableHeader.length + 1} className="text-center py-4">
+              <td colSpan={careGiverTableHeader.length} className="text-center py-4">
                 No caregivers found.
               </td>
             </tr>

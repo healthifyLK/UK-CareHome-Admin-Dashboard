@@ -1,23 +1,101 @@
 import React, { useEffect, useState } from "react";
 import Chart from "./Chart";
 import locationsService from "../services/locationService";
-import { useApiWithCache } from "../hooks/useApi";
+import roomBedsService from "../services/roomBedsService";
+import caregiversService from "../services/caregiversService";
+import careReceiversService from "../services/careReceiversService";
+import { useLocationUpdates } from "../hooks/useLocationUpdates";
 import { Link } from "react-router-dom";
 
 function CareHomeSummaryCard() {
-  const {
-    data: locations,
-    loading,
-    error,
-    execute: fetchLocations,
-  } = useApiWithCache(
-    () => locationsService.getAllLocations(true),
-    "locations-cache"
-  );
+  const [locations, setLocations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const updateTrigger = useLocationUpdates();
 
+  const fetchLocations = async () => {
+    try {
+      console.log('CareHomeSummaryCard: Fetching locations...');
+      setLoading(true);
+      setError(null);
+      
+      const data = await locationsService.getAllLocations(true);
+      console.log('CareHomeSummaryCard: Fetched locations:', data);
+      
+      const locationsWithStats = await Promise.all(
+        (data || []).map(async (location) => {
+          try {
+            // Total Beds = Capacity from database
+            const totalBeds = location.capacity || 0;
+            
+            // Fetch room beds to count occupied beds
+            const roomBeds = await roomBedsService.getByLocation(location.id);
+            const occupiedBeds = roomBeds.filter(rb => rb.isOccupied).length;
+            
+            // Available beds = Capacity - Occupied beds
+            const availableBeds = Math.max(0, totalBeds - occupiedBeds);
+            
+            // Fetch caregivers for this location
+            const caregivers = await caregiversService.getAllCaregivers();
+            const caregiverCount = caregivers.filter(cg => cg.locationId === location.id).length;
+            
+            // Fetch care receivers for this location
+            const careReceivers = await careReceiversService.getAllCareReceivers();
+            const careReceiverCount = careReceivers.filter(cr => cr.locationId === location.id).length;
+            
+            const occupancyRate = totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0;
+            
+            return {
+              ...location,
+              stats: {
+                totalBeds,
+                occupiedBeds,
+                availableBeds,
+                caregiverCount,
+                careReceiverCount,
+                occupancyRate
+              }
+            };
+          } catch (err) {
+            console.error(`Error calculating stats for location ${location.id}:`, err);
+            const totalBeds = location.capacity || 0;
+            return {
+              ...location,
+              stats: {
+                totalBeds,
+                occupiedBeds: 0,
+                availableBeds: totalBeds,
+                caregiverCount: 0,
+                careReceiverCount: 0,
+                occupancyRate: 0
+              }
+            };
+          }
+        })
+      );
+      
+      console.log('CareHomeSummaryCard: Locations with calculated stats:', locationsWithStats);
+      setLocations(locationsWithStats);
+    } catch (err) {
+      console.error('CareHomeSummaryCard: Error fetching locations:', err);
+      setError(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial fetch
   useEffect(() => {
     fetchLocations();
   }, []);
+
+  // Refresh when location updates are detected
+  useEffect(() => {
+    if (updateTrigger > 0) {
+      console.log('CareHomeSummaryCard: Refreshing due to location update, trigger:', updateTrigger);
+      fetchLocations();
+    }
+  }, [updateTrigger]);
 
   if (loading) {
     return (
@@ -55,7 +133,6 @@ function CareHomeSummaryCard() {
   return (
     <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,500px))] gap-y-10 gap-x-5 justify-center py-5 select-none">
       {locations.map((location) => {
-        // Extract stats from the nested stats object
         const stats = location.stats || {};
         const totalBeds = stats.totalBeds || 0;
         const occupiedBeds = stats.occupiedBeds || 0;
@@ -71,7 +148,6 @@ function CareHomeSummaryCard() {
             key={location.id}
             className="flex flex-col gap-5 bg-white w-fit py-5 px-5 rounded-md cursor-pointer transition duration-200 ease-in hover:scale-[1.05] shadow-md hover:shadow-lg"
           >
-            {/* Start of Title section*/}
             <div className="flex justify-between">
               <div className="text-left text-gray-700">
                 <h1 className="text-xl font-bold leading-4">{location.name}</h1>
@@ -90,18 +166,13 @@ function CareHomeSummaryCard() {
                 {location.isActive ? "Active" : "Inactive"}
               </p>
             </div>
-            {/* End of Title section*/}
             
-            {/* Start of Details Area*/}
             <div className="flex gap-5 items-center">
-              {/* Start of Chart*/}
               <Chart
                 total_beds={totalBeds}
                 occupied_beds={occupiedBeds}
               />
-              {/* End of Chart*/}
               
-              {/* Start of Middle section*/}
               <div className="text-left leading-5">
                 <h2>
                   Total Beds
@@ -121,11 +192,9 @@ function CareHomeSummaryCard() {
                   </span>
                 </h2>
               </div>
-              {/* End of Middle section*/}
               
               <div className="w-0.5 bg-gray-300 h-[150px] rounded-xl"></div>
               
-              {/* Start of Final section*/}
               <div className="text-left leading-5">
                 <h2>
                   Care Givers
@@ -149,9 +218,7 @@ function CareHomeSummaryCard() {
                   </span>
                 </h2>
               </div>
-              {/* End of Final section*/}
             </div>
-            {/* End of Details Area*/}
           </Link>
         );
       })}

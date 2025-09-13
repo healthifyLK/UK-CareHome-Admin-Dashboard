@@ -29,17 +29,20 @@ export const useApiWithCache = (apiFunction, cacheKey, dependencies = []) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [lastFetch, setLastFetch] = useState(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+  const CACHE_DURATION = 2 * 60 * 1000; // 2 minutes (reduced for more frequent updates)
 
   const execute = useCallback(async (...args) => {
     const now = Date.now();
     
     // Check if we have cached data that's still valid
     if (data && lastFetch && (now - lastFetch) < CACHE_DURATION) {
+      console.log('Using cached data for', cacheKey);
       return data;
     }
 
+    console.log('Fetching fresh data for', cacheKey);
     setLoading(true);
     setError(null);
     
@@ -65,6 +68,14 @@ export const useApiWithCache = (apiFunction, cacheKey, dependencies = []) => {
     }
   }, dependencies);
 
+  // Force refresh function
+  const forceRefresh = useCallback(() => {
+    console.log('Force refreshing data for', cacheKey);
+    setData(null);
+    setLastFetch(null);
+    setRefreshTrigger(prev => prev + 1);
+  }, [cacheKey]);
+
   // Load from cache on mount
   useEffect(() => {
     if (cacheKey) {
@@ -75,15 +86,18 @@ export const useApiWithCache = (apiFunction, cacheKey, dependencies = []) => {
           const now = Date.now();
           
           if ((now - timestamp) < CACHE_DURATION) {
+            console.log('Loading from cache for', cacheKey);
             setData(cachedData);
             setLastFetch(timestamp);
+          } else {
+            console.log('Cache expired for', cacheKey);
           }
         } catch (err) {
           console.warn('Failed to parse cached data:', err);
         }
       }
     }
-  }, [cacheKey]);
+  }, [cacheKey, refreshTrigger]);
 
-  return { data, loading, error, execute };
+  return { data, loading, error, execute, forceRefresh };
 };

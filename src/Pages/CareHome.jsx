@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useParams } from 'react-router-dom';
+import { useLocation, useParams, Link } from 'react-router-dom';
 import { Styles } from '../Styles/Styles';
 import BackButton from '../Components/BackButton';
 import UpdateBtn from '../Components/UpdateBtn';
@@ -10,10 +10,12 @@ import CareHomeTableFilter from '../Components/CareHomeTableFilter';
 import CareReceiverTable from '../Components/CareReceiverTable';
 import BedsTable from '../Components/BedsTable';
 import CareGiverTable from '../Components/CareGiverTable';
+import CareHomeUpdateOverlay from '../Components/CareHomeUpdateOverlay';
 import locationsService from '../services/locationService';
 import caregiversService from '../services/caregiversService';
 import careReceiversService from '../services/careReceiversService';
 import roomBedsService from '../services/roomBedsService';
+import { notifyLocationUpdate, useLocationUpdates } from '../hooks/useLocationUpdates';
 
 function CareHome() {
   const [filter, setFilter] = useState("Allocations");
@@ -22,95 +24,146 @@ function CareHome() {
   const [error, setError] = useState(null);
   const [caregivers, setCaregivers] = useState([]);
   const [allocations, setAllocations] = useState([]);
+  const [showUpdateOverlay, setShowUpdateOverlay] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [stats, setStats] = useState({
+    totalBeds: 0,
+    occupiedBeds: 0,
+    availableBeds: 0,
+    caregiverCount: 0,
+    careReceiverCount: 0,
+    occupancyRate: 0
+  });
 
   const location = useLocation();
   const { id } = useParams();
+  const updateTrigger = useLocationUpdates();
 
   // Helper function to format bed number as CH001A format
   const formatBedNumber = (bedNumber, roomNumber) => {
     if (!bedNumber) return 'N/A';
     
-    // If bedNumber is already in CH001A format, return as is
     if (bedNumber.startsWith('CH')) {
       return bedNumber;
     }
     
-    // If bedNumber is just a letter (A, B, C, etc.), format it as CH001A
     if (bedNumber.length === 1 && /[A-Z]/.test(bedNumber)) {
       const paddedRoomNumber = roomNumber ? String(roomNumber).padStart(3, '0') : '001';
       return `CH${paddedRoomNumber}${bedNumber}`;
     }
     
-    // For any other format, return as is
     return bedNumber;
+  };
+
+  // Calculate stats for the specific care home
+  const calculateStats = async (careHomeData, caregivers) => {
+    try {
+      // Total Beds = Capacity from database
+      const totalBeds = careHomeData.capacity || 0;
+      
+      // Fetch room beds to count occupied beds
+      const roomBeds = await roomBedsService.getByLocation(careHomeData.id);
+      const occupiedBeds = roomBeds.filter(rb => rb.isOccupied).length;
+      
+      // Available beds = Capacity - Occupied beds
+      const availableBeds = Math.max(0, totalBeds - occupiedBeds);
+      
+      // Count caregivers for this location
+      const caregiverCount = caregivers.length;
+      
+      // Fetch care receivers for this location
+      const careReceivers = await careReceiversService.getAllCareReceivers();
+      const careReceiverCount = careReceivers.filter(cr => cr.locationId === careHomeData.id).length;
+      
+      const occupancyRate = totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0;
+      
+      return {
+        totalBeds,
+        occupiedBeds,
+        availableBeds,
+        caregiverCount,
+        careReceiverCount,
+        occupancyRate
+      };
+    } catch (err) {
+      console.error('Error calculating stats:', err);
+      return {
+        totalBeds: careHomeData.capacity || 0,
+        occupiedBeds: 0,
+        availableBeds: careHomeData.capacity || 0,
+        caregiverCount: caregivers.length,
+        careReceiverCount: 0,
+        occupancyRate: 0
+      };
+    }
+  };
+
+  // Comprehensive data loading function
+  const loadCareHomeData = async (careHomeId) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      console.log('Loading care home data for ID:', careHomeId);
+
+      // Fetch care home details
+      const careHomeDetails = await locationsService.getLocationById(careHomeId, true);
+      console.log('Care home details:', careHomeDetails);
+
+      // Fetch caregivers
+      const caregiversData = await caregiversService.getAllCaregivers();
+      const locationCaregivers = caregiversData.filter(cg => cg.locationId === careHomeId);
+
+      // Calculate stats
+      const calculatedStats = await calculateStats(careHomeDetails, locationCaregivers);
+
+      // Create allocations data
+      const allocationsData = await generateAllocationsData(careHomeId, locationCaregivers);
+
+      setCareHomeData(careHomeDetails);
+      setCaregivers(locationCaregivers);
+      setAllocations(allocationsData);
+      setStats(calculatedStats);
+
+      console.log('Data loaded successfully');
+    } catch (err) {
+      console.error('Error loading care home data:', err);
+      setError(err.message);
+      
+      if (location.state) {
+        setCareHomeData(location.state);
+        setCaregivers(location.state?.CareGivers || []);
+        setAllocations(location.state?.Allocations || []);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Load care home data from backend
   useEffect(() => {
-    const loadCareHomeData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+    const careHomeId = id || location.state?.id;
+    
+    if (!careHomeId) {
+      setError('Care home ID not found');
+      setLoading(false);
+      return;
+    }
 
-        // Try to get ID from URL params first, then from location state
-        const careHomeId = id || location.state?.id;
-        
-        if (!careHomeId) {
-          throw new Error('Care home ID not found');
-        }
-
-        // Fetch care home details with statistics
-        const careHomeDetails = await locationsService.getLocationById(careHomeId, true);
-
-        // Fetch caregivers
-        const caregiversData = await caregiversService.getAllCaregivers();
-
-        // Filter caregivers for this location
-        const locationCaregivers = caregiversData.filter(cg => cg.locationId === careHomeId);
-
-        // Fetch room beds for this location
-        const roomBeds = await roomBedsService.getByLocation(careHomeId);
-
-        // Fetch care receivers for this location
-        const careReceivers = await careReceiversService.getAllCareReceivers();
-        const locationCareReceivers = careReceivers.filter(cr => cr.locationId === careHomeId);
-
-        // Create allocations data
-        const allocationsData = await generateAllocationsData(careHomeId, locationCaregivers);
-
-        // Calculate stats manually as fallback if backend stats are not available
-        const manualStats = {
-          totalBeds: roomBeds.length,
-          occupiedBeds: roomBeds.filter(rb => rb.isOccupied).length,
-          caregiverCount: locationCaregivers.length,
-          careReceiverCount: locationCareReceivers.length,
-        };
-        manualStats.availableBeds = manualStats.totalBeds - manualStats.occupiedBeds;
-        manualStats.occupancyRate = manualStats.totalBeds > 0 
-          ? Math.round((manualStats.occupiedBeds / manualStats.totalBeds) * 100) 
-          : 0;
-
-        setCareHomeData(careHomeDetails);
-        setCaregivers(locationCaregivers);
-        setAllocations(allocationsData);
-
-      } catch (err) {
-        console.error('Error loading care home data:', err);
-        setError(err.message);
-        
-        // Fallback to location state if available
-        if (location.state) {
-          setCareHomeData(location.state);
-          setCaregivers(location.state?.CareGivers || []);
-          setAllocations(location.state?.Allocations || []);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadCareHomeData();
+    loadCareHomeData(careHomeId);
   }, [id, location.state]);
+
+  // Listen for location updates and refresh data
+  useEffect(() => {
+    if (updateTrigger > 0) {
+      console.log('CareHome: Refreshing due to location update, trigger:', updateTrigger);
+      const careHomeId = id || location.state?.id;
+      if (careHomeId) {
+        loadCareHomeData(careHomeId);
+        setRefreshTrigger(prev => prev + 1);
+      }
+    }
+  }, [updateTrigger, id, location.state]);
 
   // Generate allocations data
   const generateAllocationsData = async (locationId, caregivers) => {
@@ -128,7 +181,7 @@ function CareHome() {
 
         return {
           id: bed.id,
-          bed: formatBedNumber(bed.bedNumber, bed.roomNumber), // Use formatted bed number
+          bed: formatBedNumber(bed.bedNumber, bed.roomNumber),
           careReceiver: careReceiver ? `${careReceiver.firstName} ${careReceiver.lastName}` : 'Unassigned',
           careGiver1: caregiver1 ? `${caregiver1.firstName} ${caregiver1.lastName}` : 'Unassigned',
           careGiver2: caregiver2 ? `${caregiver2.firstName} ${caregiver2.lastName}` : 'Unassigned',
@@ -138,6 +191,135 @@ function CareHome() {
       console.error('Error generating allocations:', error);
       return [];
     }
+  };
+
+  // Handle update button click
+  const handleUpdateClick = () => {
+    setShowUpdateOverlay(true);
+  };
+
+  // Handle overlay close
+  const handleOverlayClose = () => {
+    setShowUpdateOverlay(false);
+  };
+
+  // Handle successful update - comprehensive refresh
+  const handleUpdateSuccess = async (updatedData) => {
+    try {
+      console.log('Update successful, refreshing all data...');
+      
+      const careHomeId = id || location.state?.id;
+      
+      if (careHomeId) {
+        await loadCareHomeData(careHomeId);
+        console.log('Data refreshed successfully');
+        notifyLocationUpdate(careHomeId, updatedData);
+        setRefreshTrigger(prev => prev + 1);
+      } else {
+        setCareHomeData(updatedData);
+      }
+    } catch (error) {
+      console.error('Error refreshing data after update:', error);
+      setCareHomeData(updatedData);
+    }
+  };
+
+  // Single Care Home Card Component
+  const CareHomeCard = ({ careHome, stats }) => {
+    if (!careHome) return null;
+
+    return (
+      <div className="flex gap-5 items-center">
+        {/* Left side - Care Home Card */}
+        <div className="flex flex-col gap-5 bg-white w-fit py-5 px-5 rounded-md shadow-md">
+          <div className="flex gap-5 items-center">
+            <Chart
+              total_beds={stats.totalBeds}
+              occupied_beds={stats.occupiedBeds}
+            />
+            
+            <div className="text-left leading-5">
+              <h2>
+                Total Beds
+                <br />
+                <span className="font-bold text-lg">{stats.totalBeds}</span>
+              </h2>
+              <h2>
+                Occupied Beds
+                <br />
+                <span className="font-bold text-lg text-red-600">{stats.occupiedBeds}</span>
+              </h2>
+              <h2>
+                Available Beds
+                <br />
+                <span className="font-bold text-lg text-green-600">
+                  {stats.availableBeds}
+                </span>
+              </h2>
+            </div>
+            
+            <div className="w-0.5 bg-gray-300 h-[150px] rounded-xl"></div>
+            
+            <div className="text-left leading-5">
+              <h2>
+                Care Givers
+                <br />
+                <span className="font-bold text-lg">{stats.caregiverCount}</span>
+              </h2>
+              <h2>
+                Care Receivers
+                <br />
+                <span className="font-bold text-lg">{stats.careReceiverCount}</span>
+              </h2>
+              <h2>
+                Occupancy Rate
+                <br />
+                <span className={`font-bold text-lg ${
+                  stats.occupancyRate > 80 ? 'text-red-600' : 
+                  stats.occupancyRate > 60 ? 'text-yellow-600' : 
+                  'text-green-600'
+                }`}>
+                  {stats.occupancyRate}%
+                </span>
+              </h2>
+            </div>
+          </div>
+        </div>
+
+        {/* Right side - Action Buttons */}
+        <div className="flex flex-col gap-3">
+          <Link
+            to="/care-givers/register"
+            className="flex items-center gap-2 px-4 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition duration-200 shadow-md hover:shadow-lg"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Add Caregiver
+          </Link>
+          
+          <Link
+            to="/care-receivers/register"
+            className="flex items-center gap-2 px-4 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition duration-200 shadow-md hover:shadow-lg"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Add Care Receiver
+          </Link>
+          
+          <Link
+            to="/care-beds/register"
+            className="flex items-center gap-2 px-4 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition duration-200 shadow-md hover:shadow-lg"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Add Care Bed
+          </Link>
+        </div>
+      </div>
+    );
   };
 
   // Handle loading state
@@ -161,7 +343,12 @@ function CareHome() {
             <p className="text-sm">{error}</p>
             <button 
               className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              onClick={() => window.location.reload()}
+              onClick={() => {
+                const careHomeId = id || location.state?.id;
+                if (careHomeId) {
+                  loadCareHomeData(careHomeId);
+                }
+              }}
             >
               Retry
             </button>
@@ -182,31 +369,12 @@ function CareHome() {
     );
   }
 
-  // Extract data from backend response or use manual calculations
-  const backendStats = careHomeData.stats || {};
-  
-  // Calculate manual stats as fallback
-  const manualStats = {
-    totalBeds: 0,
-    occupiedBeds: 0,
-    caregiverCount: caregivers.length,
-    careReceiverCount: 0,
-  };
-  
-  // Use backend stats if available and valid, otherwise use manual calculations
-  const totalBeds = backendStats.totalBeds || manualStats.totalBeds || 0;
-  const occupiedBeds = backendStats.occupiedBeds || manualStats.occupiedBeds || 0;
-  const availableBeds = backendStats.availableBeds || (totalBeds - occupiedBeds);
-  const caregiverCount = backendStats.caregiverCount || manualStats.caregiverCount || 0;
-  const careReceiverCount = backendStats.careReceiverCount || manualStats.careReceiverCount || 0;
-  const occupancyRate = backendStats.occupancyRate || (totalBeds > 0 ? Math.round((occupiedBeds / totalBeds) * 100) : 0);
-
   return (
     <div className={Styles.PageStyle}>
       {/* Start of Page header area */}
       <div className={Styles.PageTopContainer}>
         <BackButton />
-        <UpdateBtn btn_name={"Care Home"} />
+        <UpdateBtn btn_name={"Care Home"} onClick={handleUpdateClick} />
       </div>
       
       <div className='flex flex-col gap-5 overflow-scroll'>
@@ -225,60 +393,10 @@ function CareHome() {
         </div>
         {/* End of Page title area */}
 
-        {/* Start of Page top area */}
-        <div className='flex justify-around items-center'>
-          {/* Start of Page Bed details section */}
-          <div className='flex items-center gap-5 bg-white w-fit p-8 rounded-lg shadow-md'>
-            <Chart total_beds={totalBeds} occupied_beds={occupiedBeds} />
-            <div className='text-left leading-5'>
-              <h2>
-                Total Beds<br />
-                <span className='font-bold text-lg'>{totalBeds}</span>
-              </h2>
-              <h2>
-                Occupied Beds<br />
-                <span className='font-bold text-lg text-red-600'>{occupiedBeds}</span>
-              </h2>
-              <h2>
-                Available Beds<br />
-                <span className='font-bold text-lg text-green-600'>{availableBeds}</span>
-              </h2>
-            </div>
-          </div>
-          {/* End of Page Bed details section */}
-
-          {/* Additional Statistics */}
-          <div className='flex items-center gap-5 bg-white w-fit p-8 rounded-lg shadow-md'>
-            <div className='text-left leading-5'>
-              <h2>
-                Care Givers<br />
-                <span className='font-bold text-lg'>{caregiverCount}</span>
-              </h2>
-              <h2>
-                Care Receivers<br />
-                <span className='font-bold text-lg'>{careReceiverCount}</span>
-              </h2>
-              <h2>
-                Occupancy Rate<br />
-                <span className={`font-bold text-lg ${
-                  occupancyRate > 80 ? 'text-red-600' : 
-                  occupancyRate > 60 ? 'text-yellow-600' : 
-                  'text-green-600'
-                }`}>
-                  {occupancyRate}%
-                </span>
-              </h2>
-            </div>
-          </div>
-
-          {/* Action buttons */}
-          <div className='flex flex-col gap-2'>
-            <AddBtn2 btn_name={'Care Giver'} />
-            <AddBtn2 btn_name={'Care Receiver'} />
-            <AddBtn2 btn_name={'Care Bed'} />
-          </div>
+        {/* Care Home Card with Action Buttons */}
+        <div className="flex justify-center">
+          <CareHomeCard careHome={careHomeData} stats={stats} />
         </div>
-        {/* End of Page top area */}
 
         {/* Start of Care Home Data section*/}
         <div className='flex flex-col mt-10'>
@@ -287,29 +405,42 @@ function CareHome() {
             <AllocationTable 
               initialData={allocations} 
               availableCareGivers={caregivers.map(cg => `${cg.firstName} ${cg.lastName}`)} 
+              refreshTrigger={refreshTrigger}
             />
           )}
           {filter === "Care Receivers" && (
             <CareReceiverTable 
               care_home={careHomeData.name} 
               rows_per_page={5} 
+              refreshTrigger={refreshTrigger}
             />
           )}
           {filter === "Care Givers" && (
             <CareGiverTable 
               care_home={careHomeData.name} 
               rows_per_page={5} 
+              refreshTrigger={refreshTrigger}
             />
           )}
           {filter === "Beds" && (
             <BedsTable 
               care_home={careHomeData.name} 
               rows_per_page={5} 
+              refreshTrigger={refreshTrigger}
             />
           )}
         </div>
         {/* End of Care Home Data section*/}
       </div>
+
+      {/* Update Overlay */}
+      {showUpdateOverlay && (
+        <CareHomeUpdateOverlay
+          careHomeData={careHomeData}
+          onClose={handleOverlayClose}
+          onUpdate={handleUpdateSuccess}
+        />
+      )}
     </div>
   );
 }
