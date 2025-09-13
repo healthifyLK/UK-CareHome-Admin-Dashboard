@@ -92,7 +92,20 @@ export const CareHomeNames = ["Care Home 1", "Care Home 2", "Care Home 3", "Care
 export const careBedTableHeader = ["Room Number", "Bed Number", "Care Home", "Floor", "Wing", "Status", "Features", "Action"]
 
 export const careGiverTableHeader = ["ID", "First Name", "Last Name", "Current Care Home", "Number of Patients", "Employment Type", "Action"]
-export const careReceiverTableHeader = ["ID", "First Name", "Last Name", "Current Care Home", "Age", "Care Giver 1", "Admitted Date", "# of E. Contacts", "Flags", "Condition", "Action"]
+export const careReceiverTableHeader = [
+    "ID",
+    "First Name", 
+    "Last Name",
+    "Care Home",
+    "Age",
+    "Caregiver 1",
+    "Admitted Date",
+    "Emergency Contacts",
+    "Status",
+    "Care Level",
+    "Bed Assignment", // Add this line
+    "Actions"
+  ];
 
 export const availableCareGivers = ["Alice","Clara","Eva","Grace","Isabella","Jack","Karen",]
 

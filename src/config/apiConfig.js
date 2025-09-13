@@ -36,6 +36,9 @@ export const API_CONFIG = {
       BASE: '/room-beds',
       BY_LOCATION: (locationId) => `/room-beds/location/${locationId}`,
       AVAILABLE: (locationId) => `/room-beds/location/${locationId}/available`,
+      ASSIGN: '/room-beds/assign',
+      UNASSIGN: (careReceiverId) => `/room-beds/unassign/${careReceiverId}`,
+      ASSIGNMENT: (careReceiverId) => `/room-beds/assignment/${careReceiverId}`,
     },
     ROSTERS: {
       BASE: '/rosters',

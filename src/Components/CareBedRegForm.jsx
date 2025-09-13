@@ -7,7 +7,7 @@ import roomBedsService from '../services/roomBedsService';
 const initialFormState = {
   locationId: '',
   roomNumber: '',
-  bedNumber: '',
+  bedLetter: '',
   floor: '',
   wing: '',
   isOccupied: false,
@@ -22,6 +22,12 @@ function CareBedRegForm() {
   const [locations, setLocations] = useState([]);
   const [locLoading, setLocLoading] = useState(false);
   const [locError, setLocError] = useState('');
+  
+  // New state for rooms
+  const [existingRooms, setExistingRooms] = useState([]);
+  const [roomsLoading, setRoomsLoading] = useState(false);
+  const [roomsError, setRoomsError] = useState('');
+  const [newRoomNumber, setNewRoomNumber] = useState('');
 
   useEffect(() => {
     const loadLocations = async () => {
@@ -38,6 +44,38 @@ function CareBedRegForm() {
     loadLocations();
   }, []);
 
+  // Load existing rooms when location changes
+  useEffect(() => {
+    const loadExistingRooms = async () => {
+      if (!formData.locationId) {
+        setExistingRooms([]);
+        return;
+      }
+
+      try {
+        setRoomsLoading(true);
+        setRoomsError('');
+        const res = await roomBedsService.getByLocation(formData.locationId);
+        
+        // Get unique room numbers
+        const rooms = [...new Set(res?.map(rb => rb.roomNumber) || [])]
+          .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+        
+        setExistingRooms(rooms);
+        
+        // Reset form when location changes
+        setFormData(prev => ({ ...prev, roomNumber: '', bedLetter: '' }));
+        setNewRoomNumber('');
+      } catch {
+        setRoomsError('Failed to load existing rooms');
+      } finally {
+        setRoomsLoading(false);
+      }
+    };
+
+    loadExistingRooms();
+  }, [formData.locationId]);
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
@@ -46,11 +84,30 @@ function CareBedRegForm() {
     }));
   };
 
+  const handleRoomSelection = (e) => {
+    const value = e.target.value;
+    if (value === 'new') {
+      setFormData(prev => ({ ...prev, roomNumber: '' }));
+      setNewRoomNumber('');
+    } else {
+      setFormData(prev => ({ ...prev, roomNumber: value }));
+      setNewRoomNumber('');
+    }
+  };
+
+  const handleNewRoomChange = (e) => {
+    setNewRoomNumber(e.target.value);
+    setFormData(prev => ({ ...prev, roomNumber: e.target.value }));
+  };
+
   const validateForm = (data) => {
     const errors = {};
     if (!data.locationId) errors.locationId = 'Care Home is required';
     if (!data.roomNumber.trim()) errors.roomNumber = 'Room Number is required';
-    if (!data.bedNumber.trim()) errors.bedNumber = 'Bed Number is required';
+    if (!data.bedLetter.trim()) errors.bedLetter = 'Bed Letter is required';
+    if (data.bedLetter && !/^[A-Z]$/i.test(data.bedLetter)) {
+      errors.bedLetter = 'Bed letter must be a single letter (A-Z)';
+    }
     if (data.condition && !['new', 'used'].includes(String(data.condition).toLowerCase())) {
       errors.condition = 'Condition must be either "new" or "used"';
     }
@@ -63,9 +120,12 @@ function CareBedRegForm() {
     if (d.model) features.model = d.model;
     if (d.condition) features.condition = d.condition;
 
+    // Combine room number and bed letter to create bed number
+    const bedNumber = `${d.roomNumber}${d.bedLetter.toUpperCase()}`;
+
     return {
       roomNumber: d.roomNumber.trim(),
-      bedNumber: d.bedNumber.trim(),
+      bedNumber: bedNumber,
       locationId: d.locationId,
       floor: d.floor || undefined,
       wing: d.wing || undefined,
@@ -88,9 +148,15 @@ function CareBedRegForm() {
 
     try {
       const payload = buildPayload(formData);
+      console.log('Creating room bed with payload:', payload);
       await roomBedsService.createRoomBed(payload);
       toast.success('Room/Bed registered successfully!', { position: 'top-right' });
+      
+      // Reset form
+      setFormData(initialFormState);
+      setNewRoomNumber('');
     } catch (err) {
+      console.error('Error creating room bed:', err);
       const status = err?.status || err?.response?.status;
       toast.error(status ? `Failed (HTTP ${status})` : (err?.message || 'Failed to register'), { position: 'top-right' });
     }
@@ -98,6 +164,7 @@ function CareBedRegForm() {
 
   const handleCancel = () => {
     setFormData(initialFormState);
+    setNewRoomNumber('');
     window.history.back();
   };
 
@@ -130,19 +197,77 @@ function CareBedRegForm() {
           {errors.locationId && <span className="text-red-600 text-sm">{errors.locationId}</span>}
         </label>
 
+        {/* Room Selection */}
+        {formData.locationId && (
+          <div className="space-y-4">
+            <label className="flex flex-col text-gray-600">
+              Room Selection
+              {roomsLoading ? (
+                <div className="mt-1 text-sm text-gray-500">Loading existing rooms…</div>
+              ) : roomsError ? (
+                <div className="mt-1 text-sm text-red-600">{roomsError}</div>
+              ) : (
+                <div className="space-y-2">
+                  <select
+                    name="roomSelection"
+                    onChange={handleRoomSelection}
+                    className="w-full border border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  >
+                    <option value="">Select room option</option>
+                    {existingRooms.map(room => (
+                      <option key={room} value={room}>Room {room}</option>
+                    ))}
+                    <option value="new">Create New Room</option>
+                  </select>
+                  
+                  {/* Show input for new room if "Create New Room" is selected */}
+                  {formData.roomNumber === '' && (
+                    <input
+                      type="text"
+                      placeholder="Enter new room number"
+                      value={newRoomNumber}
+                      onChange={handleNewRoomChange}
+                      className="w-full border border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600"
+                    />
+                  )}
+                </div>
+              )}
+              {errors.roomNumber && <span className="text-red-600 text-sm">{errors.roomNumber}</span>}
+            </label>
+
+            {/* Show selected room info */}
+            {formData.roomNumber && (
+              <div className="p-3 bg-blue-50 rounded border">
+                <p className="text-sm text-blue-800">
+                  <strong>Selected Room:</strong> {formData.roomNumber}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Bed Letter Input */}
+        {formData.roomNumber && (
+          <label className="flex flex-col text-gray-600">
+            Bed Letter
+            <input 
+              type="text" 
+              name="bedLetter" 
+              value={formData.bedLetter} 
+              onChange={handleChange} 
+              placeholder="Enter bed letter (A-Z)"
+              maxLength="1"
+              className="mt-1 border border-gray-600 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600" 
+              required 
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Bed number will be: {formData.roomNumber}{formData.bedLetter ? formData.bedLetter.toUpperCase() : 'X'}
+            </p>
+            {errors.bedLetter && <span className="text-red-600 text-sm">{errors.bedLetter}</span>}
+          </label>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <label className="flex flex-col text-gray-600">
-            Room Number
-            <input type="text" name="roomNumber" value={formData.roomNumber} onChange={handleChange} className="mt-1 border border-gray-600 rounded px-3 py-2" required />
-            {errors.roomNumber && <span className="text-red-600 text-sm">{errors.roomNumber}</span>}
-          </label>
-
-          <label className="flex flex-col text-gray-600">
-            Bed Number
-            <input type="text" name="bedNumber" value={formData.bedNumber} onChange={handleChange} className="mt-1 border border-gray-600 rounded px-3 py-2" required />
-            {errors.bedNumber && <span className="text-red-600 text-sm">{errors.bedNumber}</span>}
-          </label>
-
           <label className="flex flex-col text-gray-600">
             Floor (optional)
             <input type="text" name="floor" value={formData.floor} onChange={handleChange} className="mt-1 border border-gray-600 rounded px-3 py-2" />

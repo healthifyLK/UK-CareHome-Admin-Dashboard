@@ -1,3 +1,4 @@
+// Update src/services/roomBedsService.js
 import apiService from './apiService';
 import { API_ENDPOINTS } from '../config/apiConfig';
 
@@ -30,6 +31,37 @@ class RoomBedsService {
     }
     
     return allRoomBeds;
+  }
+
+  // New methods for bed assignment
+  async assignCareReceiverToBed(careReceiverId, roomBedId) {
+    try {
+      return await apiService.post(API_ENDPOINTS.ROOM_BEDS.ASSIGN, {
+        careReceiverId: careReceiverId,
+        roomBedId: roomBedId
+      });
+    } catch (error) {
+      console.error('Error assigning care receiver to bed:', error);
+      throw error;
+    }
+  }
+
+  async unassignCareReceiverFromBed(careReceiverId) {
+    try {
+      return await apiService.post(API_ENDPOINTS.ROOM_BEDS.UNASSIGN(careReceiverId));
+    } catch (error) {
+      console.error('Error unassigning care receiver from bed:', error);
+      throw error;
+    }
+  }
+
+  async getCareReceiverBedAssignment(careReceiverId) {
+    try {
+      return await apiService.get(API_ENDPOINTS.ROOM_BEDS.ASSIGNMENT(careReceiverId));
+    } catch (error) {
+      console.error('Error getting care receiver bed assignment:', error);
+      throw error;
+    }
   }
 }
 

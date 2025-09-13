@@ -1,9 +1,13 @@
+// Update src/Components/CareReceiverTable.jsx
 import React, { useMemo, useState, useEffect } from "react";
 import { availableCareGivers, careReceiverTableHeader } from "../assets/assets";
 import { Styles } from "../Styles/Styles";
 import { useNavigate } from "react-router-dom";
 import careReceiversService from "../services/careReceiversService";
 import locationsService from "../services/locationService";
+import roomBedsService from "../services/roomBedsService";
+import BedAssignmentModal from "./BedAssignmentModal";
+import { toast } from "react-toastify";
 
 function CareReceiverTable({ care_home, rows_per_page }) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -14,6 +18,13 @@ function CareReceiverTable({ care_home, rows_per_page }) {
   const [loading, setLoading] = useState(true);
   const [locations, setLocations] = useState([]);
   const [locationsLoading, setLocationsLoading] = useState(true);
+  
+  // New state for bed assignments
+  const [bedAssignments, setBedAssignments] = useState({});
+  const [bedAssignmentModal, setBedAssignmentModal] = useState({
+    isOpen: false,
+    careReceiver: null
+  });
 
   const navigate = useNavigate();
 
@@ -43,6 +54,37 @@ function CareReceiverTable({ care_home, rows_per_page }) {
       .catch(() => setData([]))
       .finally(() => setLoading(false));
   }, []);
+
+  // Load bed assignments for all care receivers
+  useEffect(() => {
+    const loadBedAssignments = async () => {
+      try {
+        const assignments = {};
+        for (const careReceiver of data) {
+          try {
+            const assignment = await roomBedsService.getCareReceiverBedAssignment(careReceiver.id);
+            if (assignment.currentRoomBed) {
+              assignments[careReceiver.id] = {
+                roomNumber: assignment.currentRoomBed.roomNumber,
+                bedNumber: assignment.currentRoomBed.bedNumber,
+                bedId: assignment.currentRoomBed.id
+              };
+            }
+          } catch (error) {
+            // Care receiver might not have a bed assignment, which is fine
+            console.log(`No bed assignment for care receiver ${careReceiver.id}`);
+          }
+        }
+        setBedAssignments(assignments);
+      } catch (error) {
+        console.error('Error loading bed assignments:', error);
+      }
+    };
+
+    if (data.length > 0) {
+      loadBedAssignments();
+    }
+  }, [data]);
 
   // Helper function to get location name by ID
   const getLocationName = (locationId) => {
@@ -107,6 +149,7 @@ function CareReceiverTable({ care_home, rows_per_page }) {
       return "Invalid date";
     }
   };
+
   const generatePatientId = (patient, index) => {
     if (!patient || !patient.locationId)
       return `P${String(index + 1).padStart(3, "0")}`;
@@ -216,6 +259,60 @@ function CareReceiverTable({ care_home, rows_per_page }) {
     navigate(`/care-receivers/${id}`);
   };
 
+  // New handlers for bed assignment
+  const handleAssignBed = (careReceiver) => {
+    setBedAssignmentModal({
+      isOpen: true,
+      careReceiver: careReceiver
+    });
+  };
+
+  const handleBedAssignmentSuccess = () => {
+    // Reload bed assignments
+    const loadBedAssignments = async () => {
+      try {
+        const assignments = {};
+        for (const careReceiver of data) {
+          try {
+            const assignment = await roomBedsService.getCareReceiverBedAssignment(careReceiver.id);
+            if (assignment.currentRoomBed) {
+              assignments[careReceiver.id] = {
+                roomNumber: assignment.currentRoomBed.roomNumber,
+                bedNumber: assignment.currentRoomBed.bedNumber,
+                bedId: assignment.currentRoomBed.id
+              };
+            }
+          } catch (error) {
+            // Care receiver might not have a bed assignment, which is fine
+            console.log(`No bed assignment for care receiver ${careReceiver.id}`);
+          }
+        }
+        setBedAssignments(assignments);
+      } catch (error) {
+        console.error('Error loading bed assignments:', error);
+      }
+    };
+    loadBedAssignments();
+  };
+
+  const handleUnassignBed = async (careReceiverId) => {
+    try {
+      const result = await roomBedsService.unassignCareReceiverFromBed(careReceiverId);
+      toast.success(result.message || 'Bed unassigned successfully!');
+      
+      // Update local state
+      setBedAssignments(prev => {
+        const newAssignments = { ...prev };
+        delete newAssignments[careReceiverId];
+        return newAssignments;
+      });
+    } catch (error) {
+      console.error('Error unassigning bed:', error);
+      const errorMessage = error?.response?.data?.message || 'Failed to unassign bed';
+      toast.error(errorMessage);
+    }
+  };
+
   // Helper to calculate age from birthdate
   const calculateAge = (birthdate) => {
     if (!birthdate) return "";
@@ -323,6 +420,28 @@ function CareReceiverTable({ care_home, rows_per_page }) {
                   {getCareLevelDisplay(item.careLevel)}
                 </td>
                 <td className={Styles.TableData}>
+                  {bedAssignments[item.id] ? (
+                    <div className="flex flex-col gap-1">
+                      <span className="text-sm text-green-600 font-medium">
+                        Room {bedAssignments[item.id].roomNumber} - Bed {bedAssignments[item.id].bedNumber}
+                      </span>
+                      <button
+                        onClick={() => handleUnassignBed(item.id)}
+                        className="text-xs text-red-600 hover:text-red-800 underline"
+                      >
+                        Unassign
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => handleAssignBed(item)}
+                      className="bg-green-500 py-1 px-2 text-white text-xs rounded-sm hover:bg-green-600"
+                    >
+                      Assign Bed
+                    </button>
+                  )}
+                </td>
+                <td className={Styles.TableData}>
                   <div className="flex gap-3">
                     <button
                       className="bg-blue-500 py-1 px-1.5 text-white text-sm rounded-sm"
@@ -331,23 +450,6 @@ function CareReceiverTable({ care_home, rows_per_page }) {
                     >
                       Open
                     </button>
-                    {/* {editingRow === item.id ? (
-                      <button
-                        className="bg-green-600 py-1 px-1.5 text-white text-sm rounded-sm"
-                        type="button"
-                        onClick={() => handleDone(item.id, item)}
-                      >
-                        Done
-                      </button>
-                    ) : (
-                      <button
-                        className="bg-gray-500 py-1 px-1.5 text-white text-sm rounded-sm"
-                        type="button"
-                        onClick={() => handleEdit(item.id)}
-                      >
-                        Edit
-                      </button>
-                    )} */}
                     <button
                       className="bg-red-500 py-1 px-1.5 text-white text-sm rounded-sm"
                       type="button"
@@ -444,6 +546,14 @@ function CareReceiverTable({ care_home, rows_per_page }) {
           </div>
         </div>
       </div>
+
+      {/* Bed Assignment Modal */}
+      <BedAssignmentModal
+        isOpen={bedAssignmentModal.isOpen}
+        onClose={() => setBedAssignmentModal({ isOpen: false, careReceiver: null })}
+        careReceiver={bedAssignmentModal.careReceiver}
+        onAssignmentSuccess={handleBedAssignmentSuccess}
+      />
     </div>
   );
 }
