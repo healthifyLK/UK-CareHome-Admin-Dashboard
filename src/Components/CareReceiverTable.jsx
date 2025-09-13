@@ -1,12 +1,12 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { availableCareGivers, careReceiverTableHeader } from '../assets/assets';
-import { Styles } from '../Styles/Styles';
-import { useNavigate } from 'react-router-dom';
-import careReceiversService from '../services/careReceiversService';
-import locationsService from '../services/locationService';
+import React, { useMemo, useState, useEffect } from "react";
+import { availableCareGivers, careReceiverTableHeader } from "../assets/assets";
+import { Styles } from "../Styles/Styles";
+import { useNavigate } from "react-router-dom";
+import careReceiversService from "../services/careReceiversService";
+import locationsService from "../services/locationService";
 
 function CareReceiverTable({ care_home, rows_per_page }) {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [perPage, setPerPage] = useState(rows_per_page);
   const [data, setData] = useState([]);
@@ -25,7 +25,7 @@ function CareReceiverTable({ care_home, rows_per_page }) {
         const locationsData = await locationsService.getAllLocations();
         setLocations(locationsData || []);
       } catch (error) {
-        console.error('Error loading locations:', error);
+        console.error("Error loading locations:", error);
         setLocations([]);
       } finally {
         setLocationsLoading(false);
@@ -37,7 +37,8 @@ function CareReceiverTable({ care_home, rows_per_page }) {
   // Fetch data from backend
   useEffect(() => {
     setLoading(true);
-    careReceiversService.getAllCareReceivers()
+    careReceiversService
+      .getAllCareReceivers()
       .then(setData)
       .catch(() => setData([]))
       .finally(() => setLoading(false));
@@ -45,60 +46,91 @@ function CareReceiverTable({ care_home, rows_per_page }) {
 
   // Helper function to get location name by ID
   const getLocationName = (locationId) => {
-    if (!locationId || locationsLoading) return 'Loading...';
-    const location = locations.find(loc => loc.id === locationId);
+    if (!locationId || locationsLoading) return "Loading...";
+    const location = locations.find((loc) => loc.id === locationId);
     return location ? location.name : `Unknown (${locationId})`;
   };
 
   // Helper function to count emergency contacts
   const getEmergencyContactsCount = (emergencyContacts) => {
-    if (!emergencyContacts || !Array.isArray(emergencyContacts)) return '0';
+    if (!emergencyContacts || !Array.isArray(emergencyContacts)) return "0";
     return emergencyContacts.length.toString();
   };
 
   // Helper function to get care level display
   const getCareLevelDisplay = (careLevel) => {
-    if (!careLevel) return '';
-    return careLevel.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+    if (!careLevel) return "";
+    return careLevel
+      .replace("_", " ")
+      .toLowerCase()
+      .replace(/\b\w/g, (l) => l.toUpperCase());
   };
 
   // Helper function to get mobility level display
   const getMobilityDisplay = (mobilityLevel) => {
-    if (!mobilityLevel) return '';
-    return mobilityLevel.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+    if (!mobilityLevel) return "";
+    return mobilityLevel
+      .replace("_", " ")
+      .toLowerCase()
+      .replace(/\b\w/g, (l) => l.toUpperCase());
   };
 
   // Helper function to get mental capacity display
   const getMentalCapacityDisplay = (mentalCapacityLevel) => {
-    if (!mentalCapacityLevel) return '';
-    return mentalCapacityLevel.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+    if (!mentalCapacityLevel) return "";
+    return mentalCapacityLevel
+      .replace("_", " ")
+      .toLowerCase()
+      .replace(/\b\w/g, (l) => l.toUpperCase());
   };
 
   // Helper function to get status display
   const getStatusDisplay = (status) => {
-    if (!status) return '';
-    return status.replace('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+    if (!status) return "";
+    return status
+      .replace("_", " ")
+      .toLowerCase()
+      .replace(/\b\w/g, (l) => l.toUpperCase());
   };
 
   const formatAdmissionDate = (admissionDate) => {
-    if (!admissionDate) return 'Not available';
+    if (!admissionDate) return "Not available";
     try {
       const date = new Date(admissionDate);
-      return date.toLocaleDateString('en-GB',{
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
+      return date.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
       });
     } catch (error) {
-      console.error('Error formatting admission date:', error);
-      return 'Invalid date';
+      console.error("Error formatting admission date:", error);
+      return "Invalid date";
     }
-  }
+  };
+  const generatePatientId = (patient, index) => {
+    if (!patient || !patient.locationId)
+      return `P${String(index + 1).padStart(3, "0")}`;
+
+    // Find the location to get its code
+    const location = locations.find((loc) => loc.id === patient.locationId);
+    if (!location) return `P${String(index + 1).padStart(3, "0")}`;
+
+    // Generate location code (first 2 letters of name + 3 digits)
+    const locationCode = location.name
+      .replace(/[^a-zA-Z]/g, "") // Remove non-letters
+      .substring(0, 2)
+      .toUpperCase();
+
+    // Generate patient sequence number (3 digits)
+    const patientNumber = String(index + 1).padStart(3, "0");
+
+    return `${locationCode}${patientNumber}`;
+  };
 
   // Filter data by care_home prop (now using location names)
   const filteredByHome = useMemo(() => {
-    if (care_home && care_home !== 'All') {
-      return data.filter(item => {
+    if (care_home && care_home !== "All") {
+      return data.filter((item) => {
         const locationName = getLocationName(item.locationId);
         return locationName === care_home;
       });
@@ -110,7 +142,7 @@ function CareReceiverTable({ care_home, rows_per_page }) {
   const filteredData = useMemo(() => {
     if (!searchTerm) return filteredByHome;
     const lowerSearch = searchTerm.toLowerCase();
-    return filteredByHome.filter(row => {
+    return filteredByHome.filter((row) => {
       // Include location name in search
       const locationName = getLocationName(row.locationId);
       const searchableFields = [
@@ -123,11 +155,11 @@ function CareReceiverTable({ care_home, rows_per_page }) {
         getCareLevelDisplay(row.careLevel),
         getMobilityDisplay(row.mobilityLevel),
         getMentalCapacityDisplay(row.mentalCapacityLevel),
-        getStatusDisplay(row.status)
+        getStatusDisplay(row.status),
       ];
-      
-      return searchableFields.some(field => 
-        field && field.toString().toLowerCase().includes(lowerSearch)
+
+      return searchableFields.some(
+        (field) => field && field.toString().toLowerCase().includes(lowerSearch)
       );
     });
   }, [filteredByHome, searchTerm, locations, locationsLoading]);
@@ -147,12 +179,12 @@ function CareReceiverTable({ care_home, rows_per_page }) {
   const handleDischarge = async (id) => {
     try {
       await careReceiversService.dischargeCareReceiver(id);
-      setData(prev => prev.filter(row => row.id !== id));
+      setData((prev) => prev.filter((row) => row.id !== id));
       if ((totalRows - 1) / perPage < currentPage && currentPage > 1) {
         setCurrentPage(currentPage - 1);
       }
     } catch (err) {
-      console.error('Error discharging care receiver:', err);
+      console.error("Error discharging care receiver:", err);
     }
   };
 
@@ -164,17 +196,19 @@ function CareReceiverTable({ care_home, rows_per_page }) {
     try {
       await careReceiversService.updateCareReceiver(id, updatedRow);
       setEditingRow(null);
-      setData(prev =>
-        prev.map(row => (row.id === id ? { ...row, ...updatedRow } : row))
+      setData((prev) =>
+        prev.map((row) => (row.id === id ? { ...row, ...updatedRow } : row))
       );
     } catch (err) {
-      console.error('Error updating care receiver:', err);
+      console.error("Error updating care receiver:", err);
     }
   };
 
   const handleCareGiver2Change = (id, newValue) => {
-    setData(prev =>
-      prev.map(row => (row.id === id ? { ...row, CareGiver2: newValue } : row))
+    setData((prev) =>
+      prev.map((row) =>
+        row.id === id ? { ...row, CareGiver2: newValue } : row
+      )
     );
   };
 
@@ -184,7 +218,7 @@ function CareReceiverTable({ care_home, rows_per_page }) {
 
   // Helper to calculate age from birthdate
   const calculateAge = (birthdate) => {
-    if (!birthdate) return '';
+    if (!birthdate) return "";
     const birth = new Date(birthdate);
     const today = new Date();
     let age = today.getFullYear() - birth.getFullYear();
@@ -199,18 +233,19 @@ function CareReceiverTable({ care_home, rows_per_page }) {
   const CareGiver2Cell = ({ row }) =>
     editingRow === row.id ? (
       <select
-        value={row.CareGiver2 || ''}
-        onChange={e => handleCareGiver2Change(row.id, e.target.value)}
-        className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        value={row.CareGiver2 || ""}
+        onChange={(e) => handleCareGiver2Change(row.id, e.target.value)}
+        className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+      >
         <option value="">Select Caregiver</option>
-        {availableCareGivers.map(cg => (
+        {availableCareGivers.map((cg) => (
           <option key={cg} value={cg}>
             {cg}
           </option>
         ))}
       </select>
     ) : (
-      <span>{row.CareGiver2 || 'Not assigned'}</span>
+      <span>{row.CareGiver2 || "Not assigned"}</span>
     );
 
   return (
@@ -221,11 +256,11 @@ function CareReceiverTable({ care_home, rows_per_page }) {
           type="text"
           placeholder="Search..."
           value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
+          onChange={(e) => setSearchTerm(e.target.value)}
           className="px-3 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <button
-          onClick={() => setSearchTerm('')}
+          onClick={() => setSearchTerm("")}
           className="border border-blue-600 text-blue-600 bg-blue-50 py-1 px-2 rounded-sm cursor-pointer active:bg-blue-200"
         >
           Clear
@@ -246,7 +281,10 @@ function CareReceiverTable({ care_home, rows_per_page }) {
         <tbody>
           {loading || locationsLoading ? (
             <tr>
-              <td colSpan={careReceiverTableHeader.length + 1} className="text-center py-4">
+              <td
+                colSpan={careReceiverTableHeader.length + 1}
+                className="text-center py-4"
+              >
                 Loading...
               </td>
             </tr>
@@ -254,9 +292,13 @@ function CareReceiverTable({ care_home, rows_per_page }) {
             paginatedData.map((item, index) => (
               <tr
                 key={item.id || index}
-                className={index % 2 === 0 ? 'bg-gray-100' : 'bg-gray-50'}
+                className={index % 2 === 0 ? "bg-gray-100" : "bg-gray-50"}
               >
-                <td className={Styles.TableData}>{item.id}</td>
+                <td className={Styles.TableData}>
+                  <span className="font-mono text-sm bg-blue-100 px-2 py-1 rounded">
+                    {generatePatientId(item, index)}
+                  </span>
+                </td>
                 <td className={Styles.TableData}>{item.firstName}</td>
                 <td className={Styles.TableData}>{item.lastName}</td>
                 <td className={Styles.TableData}>
@@ -265,13 +307,21 @@ function CareReceiverTable({ care_home, rows_per_page }) {
                 <td className={Styles.TableData}>
                   {calculateAge(item.dateOfBirth)}
                 </td>
-                <td className={Styles.TableData}>{item.CareGiver1 || 'Not assigned'}</td>
-                <td className={Styles.TableData}>{formatAdmissionDate(item.admissionDate)}</td>
+                <td className={Styles.TableData}>
+                  {item.CareGiver1 || "Not assigned"}
+                </td>
+                <td className={Styles.TableData}>
+                  {formatAdmissionDate(item.admissionDate)}
+                </td>
                 <td className={Styles.TableData}>
                   {getEmergencyContactsCount(item.emergencyContacts)}
                 </td>
-                <td className={Styles.TableData}>{getStatusDisplay(item.status)}</td>
-                <td className={Styles.TableData}>{getCareLevelDisplay(item.careLevel)}</td>
+                <td className={Styles.TableData}>
+                  {getStatusDisplay(item.status)}
+                </td>
+                <td className={Styles.TableData}>
+                  {getCareLevelDisplay(item.careLevel)}
+                </td>
                 <td className={Styles.TableData}>
                   <div className="flex gap-3">
                     <button
@@ -311,7 +361,10 @@ function CareReceiverTable({ care_home, rows_per_page }) {
             ))
           ) : (
             <tr>
-              <td colSpan={careReceiverTableHeader.length + 1} className="text-center py-4">
+              <td
+                colSpan={careReceiverTableHeader.length + 1}
+                className="text-center py-4"
+              >
                 No data found.
               </td>
             </tr>
@@ -322,15 +375,17 @@ function CareReceiverTable({ care_home, rows_per_page }) {
       {/* Pagination */}
       <div className="p-4 bg-gray-50 border-t flex justify-between items-center">
         <div className="text-sm text-gray-600">
-          Showing {paginatedData.length === 0 ? 0 : startIndex + 1} to{' '}
-          {Math.min(startIndex + paginatedData.length, totalRows)} of {totalRows} entries
-          {searchTerm && ` (filtered from ${filteredByHome.length} total entries)`}
+          Showing {paginatedData.length === 0 ? 0 : startIndex + 1} to{" "}
+          {Math.min(startIndex + paginatedData.length, totalRows)} of{" "}
+          {totalRows} entries
+          {searchTerm &&
+            ` (filtered from ${filteredByHome.length} total entries)`}
         </div>
 
         <div className="flex items-center gap-2">
           <select
             value={perPage}
-            onChange={e => {
+            onChange={(e) => {
               setPerPage(Number(e.target.value));
               setCurrentPage(1);
             }}
@@ -368,8 +423,8 @@ function CareReceiverTable({ care_home, rows_per_page }) {
                   onClick={() => setCurrentPage(page)}
                   className={`px-3 py-1 border rounded text-sm ${
                     currentPage === page
-                      ? 'bg-blue-500 text-white border-blue-500'
-                      : 'border-gray-300 hover:bg-gray-100'
+                      ? "bg-blue-500 text-white border-blue-500"
+                      : "border-gray-300 hover:bg-gray-100"
                   }`}
                 >
                   {page}
@@ -378,7 +433,9 @@ function CareReceiverTable({ care_home, rows_per_page }) {
             })}
 
             <button
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              onClick={() =>
+                setCurrentPage(Math.min(totalPages, currentPage + 1))
+              }
               disabled={currentPage === totalPages}
               className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
             >

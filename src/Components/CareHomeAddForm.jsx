@@ -35,6 +35,7 @@ function CareHomeAddForm() {
 
   const [form, setForm] = useState(initialFormState);
   const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
 
   // Helper to auto-calculate capacity
   const autoCalculateCapacity = (fields) => {
@@ -59,24 +60,56 @@ function CareHomeAddForm() {
       }
       return updated;
     });
+    
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ""
+      }));
+    }
   };
 
   const validate = (f) => {
     const errs = {};
+    
+    // Required fields
     if (!isFilled(f.name)) errs.name = "Name is required";
     if (!isFilled(f.address)) errs.address = "Address is required";
-    if (isFilled(f.email) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email))
-      errs.email = "Invalid email";
-    if (isFilled(f.numberOfRooms) && !toInt(f.numberOfRooms))
-      errs.numberOfRooms = "numberOfRooms must be numeric";
-    if (isFilled(f.bedsPerRoom)) {
-      const b = toInt(f.bedsPerRoom);
-      if (!b) errs.bedsPerRoom = "bedsPerRoom must be numeric";
-      else if (b < 1 || b > 26)
-        errs.bedsPerRoom = "bedsPerRoom must be between 1 and 26";
+    
+    // Email validation
+    if (isFilled(f.email) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email)) {
+      errs.email = "Invalid email format";
     }
-    if (isFilled(f.capacity) && !toInt(f.capacity))
-      errs.capacity = "capacity must be numeric";
+    
+    // Numeric validations
+    if (isFilled(f.numberOfRooms)) {
+      const num = toInt(f.numberOfRooms);
+      if (!num) {
+        errs.numberOfRooms = "Number of rooms must be a valid number";
+      } else if (num < 1) {
+        errs.numberOfRooms = "Number of rooms must be at least 1";
+      }
+    }
+    
+    if (isFilled(f.bedsPerRoom)) {
+      const num = toInt(f.bedsPerRoom);
+      if (!num) {
+        errs.bedsPerRoom = "Beds per room must be a valid number";
+      } else if (num < 1 || num > 26) {
+        errs.bedsPerRoom = "Beds per room must be between 1 and 26";
+      }
+    }
+    
+    if (isFilled(f.capacity)) {
+      const num = toInt(f.capacity);
+      if (!num) {
+        errs.capacity = "Capacity must be a valid number";
+      } else if (num < 0) {
+        errs.capacity = "Capacity cannot be negative";
+      }
+    }
+    
     return errs;
   };
 
@@ -84,58 +117,154 @@ function CareHomeAddForm() {
     const payload = {
       name: f.name.trim(),
       address: f.address.trim(),
-      city: isFilled(f.city) ? f.city.trim() : undefined,
-      postcode: isFilled(f.postcode) ? f.postcode.trim() : undefined,
-      phoneNumber: isFilled(f.phoneNumber) ? f.phoneNumber.trim() : undefined,
-      email: isFilled(f.email) ? f.email.trim() : undefined,
-      numberOfRooms: toInt(f.numberOfRooms),
-      bedsPerRoom: toInt(f.bedsPerRoom),
-      capacity: toInt(f.capacity),
       isActive: !!f.isActive,
-      // Put extra UI-only fields into settings
-      settings:
-        isFilled(f.tagName) || isFilled(f.settings_note)
-          ? {
-              tagName: isFilled(f.tagName) ? f.tagName.trim() : undefined,
-              note: isFilled(f.settings_note)
-                ? f.settings_note.trim()
-                : undefined,
-            }
-          : undefined,
+      settings: {}, // Always include settings as empty object
     };
+
+    // Only add optional fields if they have values
+    if (f.city && f.city.trim()) {
+      payload.city = f.city.trim();
+    }
+    if (f.postcode && f.postcode.trim()) {
+      payload.postcode = f.postcode.trim();
+    }
+    if (f.phoneNumber && f.phoneNumber.trim()) {
+      payload.phoneNumber = f.phoneNumber.trim();
+    }
+    if (f.email && f.email.trim()) {
+      payload.email = f.email.trim();
+    }
+    
+    // Numeric fields - ensure they are proper numbers
+    if (f.numberOfRooms && f.numberOfRooms !== '') {
+      const num = parseInt(f.numberOfRooms);
+      if (!isNaN(num) && num > 0) {
+        payload.numberOfRooms = num;
+      }
+    }
+    if (f.bedsPerRoom && f.bedsPerRoom !== '') {
+      const num = parseInt(f.bedsPerRoom);
+      if (!isNaN(num) && num > 0 && num <= 26) {
+        payload.bedsPerRoom = num;
+      }
+    }
+    if (f.capacity && f.capacity !== '') {
+      const num = parseInt(f.capacity);
+      if (!isNaN(num) && num >= 0) {
+        payload.capacity = num;
+      }
+    }
+
+    // Only add settings if there's meaningful content
+    if ((f.tagName && f.tagName.trim()) || (f.settings_note && f.settings_note.trim())) {
+      if (f.tagName && f.tagName.trim()) {
+        payload.settings.tagName = f.tagName.trim();
+      }
+      if (f.settings_note && f.settings_note.trim()) {
+        payload.settings.note = f.settings_note.trim();
+      }
+    }
+
     return payload;
   };
 
   const onSubmit = async (e) => {
     e.preventDefault();
+    console.log('=== FORM SUBMISSION STARTED ===');
+    
     const errs = validate(form);
+    
     if (Object.keys(errs).length) {
+      console.log('Validation errors:', errs);
+      setErrors(errs);
       Object.values(errs).forEach((m) => toast.error(m));
       return;
     }
+    
     try {
       setSubmitting(true);
+      setErrors({});
+      
       const payload = buildPayload(form);
-      await locationsService.createLocation(payload);
-      toast.success("Care Home created");
-      // setForm(initialFormState); // optional reset
+      console.log('=== PAYLOAD BUILT ===');
+      console.log('Payload:', JSON.stringify(payload, null, 2));
+      
+      console.log('=== CALLING API ===');
+      const result = await locationsService.createLocation(payload);
+      console.log('=== API CALL SUCCESSFUL ===');
+      console.log('Result:', result);
+      
+      // Show success toast immediately
+      toast.success("🎉 Care Home created successfully!", {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      
+      // Reset form
+      setForm(initialFormState);
+      console.log('=== FORM RESET ===');
+      
     } catch (err) {
+      console.log('=== API CALL FAILED ===');
+      console.error('Error object:', err);
+      console.error('Error message:', err?.message);
+      console.error('Error status:', err?.status);
+      console.error('Error response:', err?.response);
+      
       const status = err?.status || err?.response?.status;
-      toast.error(
-        status
-          ? `Failed (HTTP ${status})`
-          : err?.message || "Failed to create care home"
-      );
+      let errorMessage = "Failed to create care home";
+      
+      if (status === 400) {
+        errorMessage = "Invalid data provided. Please check your input.";
+      } else if (status === 401) {
+        errorMessage = "Authentication required. Please log in.";
+      } else if (status === 403) {
+        errorMessage = "Insufficient permissions. Contact administrator.";
+      } else if (status === 409) {
+        errorMessage = "A care home with this name already exists.";
+      } else if (status) {
+        errorMessage = `Server error (HTTP ${status})`;
+      } else if (err?.message) {
+        errorMessage = err.message;
+      }
+      
+      toast.error(`❌ ${errorMessage}`, {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     } finally {
       setSubmitting(false);
+      console.log('=== FORM SUBMISSION COMPLETED ===');
     }
   };
 
-  const onCancel = () => setForm(initialFormState);
+  const onCancel = () => {
+    setForm(initialFormState);
+    setErrors({});
+  };
 
   return (
     <>
-      <ToastContainer />
+      <ToastContainer 
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        style={{ zIndex: 9999 }}
+      />
       <form
         onSubmit={onSubmit}
         className="max-w-2xl mx-auto p-6 bg-white rounded shadow space-y-6"
@@ -152,9 +281,12 @@ function CareHomeAddForm() {
               name="name"
               value={form.name}
               onChange={onChange}
-              className="mt-1 border border-gray-500 rounded px-3 py-2"
+              className={`mt-1 border rounded px-3 py-2 ${
+                errors.name ? 'border-red-500' : 'border-gray-500'
+              }`}
               required
             />
+            {errors.name && <span className="text-red-500 text-sm mt-1">{errors.name}</span>}
           </label>
 
           <label className="flex flex-col text-gray-700">
@@ -164,9 +296,12 @@ function CareHomeAddForm() {
               name="address"
               value={form.address}
               onChange={onChange}
-              className="mt-1 border border-gray-500 rounded px-3 py-2"
+              className={`mt-1 border rounded px-3 py-2 ${
+                errors.address ? 'border-red-500' : 'border-gray-500'
+              }`}
               required
             />
+            {errors.address && <span className="text-red-500 text-sm mt-1">{errors.address}</span>}
           </label>
 
           <label className="flex flex-col text-gray-700">
@@ -209,8 +344,11 @@ function CareHomeAddForm() {
               name="email"
               value={form.email}
               onChange={onChange}
-              className="mt-1 border border-gray-500 rounded px-3 py-2"
+              className={`mt-1 border rounded px-3 py-2 ${
+                errors.email ? 'border-red-500' : 'border-gray-500'
+              }`}
             />
+            {errors.email && <span className="text-red-500 text-sm mt-1">{errors.email}</span>}
           </label>
 
           <label className="flex flex-col text-gray-700">
@@ -221,9 +359,12 @@ function CareHomeAddForm() {
               name="numberOfRooms"
               value={form.numberOfRooms}
               onChange={onChange}
-              className="mt-1 border border-gray-500 rounded px-3 py-2"
+              className={`mt-1 border rounded px-3 py-2 ${
+                errors.numberOfRooms ? 'border-red-500' : 'border-gray-500'
+              }`}
               placeholder="e.g. 20"
             />
+            {errors.numberOfRooms && <span className="text-red-500 text-sm mt-1">{errors.numberOfRooms}</span>}
           </label>
 
           <label className="flex flex-col text-gray-700">
@@ -235,22 +376,36 @@ function CareHomeAddForm() {
               name="bedsPerRoom"
               value={form.bedsPerRoom}
               onChange={onChange}
-              className="mt-1 border border-gray-500 rounded px-3 py-2"
+              className={`mt-1 border rounded px-3 py-2 ${
+                errors.bedsPerRoom ? 'border-red-500' : 'border-gray-500'
+              }`}
               placeholder="e.g. 2"
             />
+            {errors.bedsPerRoom && <span className="text-red-500 text-sm mt-1">{errors.bedsPerRoom}</span>}
           </label>
 
           <label className="flex flex-col text-gray-700">
             Capacity 
             <input
               type="number"
-              min="1"
+              min="0"
               name="capacity"
               value={form.capacity}
               onChange={onChange}
-              className="mt-1 border border-gray-500 rounded px-3 py-2"
-              placeholder="If known"
+              className={`mt-1 border rounded px-3 py-2 ${
+                errors.capacity ? 'border-red-500' : 'border-gray-500'
+              }`}
+              placeholder="Auto-calculated or enter manually"
             />
+            {errors.capacity && <span className="text-red-500 text-sm mt-1">{errors.capacity}</span>}
+            {form.capacity && (
+              <span className="text-sm text-gray-500 mt-1">
+                Auto-calculated: {form.numberOfRooms && form.bedsPerRoom ? 
+                  `${form.numberOfRooms} × ${form.bedsPerRoom} = ${form.numberOfRooms * form.bedsPerRoom}` : 
+                  'Enter number of rooms and beds per room to auto-calculate'
+                }
+              </span>
+            )}
           </label>
 
           <label className="flex items-center gap-3 text-gray-700 mt-6">
@@ -298,13 +453,13 @@ function CareHomeAddForm() {
           <button
             type="submit"
             disabled={submitting}
-            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+            className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {submitting ? "Saving..." : "Add"}
+            {submitting ? "Saving..." : "Add Care Home"}
           </button>
           <button
             type="button"
-            onClick={() => setForm(initialFormState)}
+            onClick={onCancel}
             className="bg-gray-600 text-white px-6 py-2 rounded hover:bg-gray-700"
           >
             Cancel
